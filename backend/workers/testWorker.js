@@ -31,12 +31,19 @@ registerWorkerCallback(async (job) => {
     const extractedText = await extractTextFromPDF(fileBuffer);
     job.updateProgress(40); // 40%
 
-    // 2. Chunk (RAG Foundation)
-    const chunks = splitIntoChunks(extractedText, 2500, 500);
-    const relevantChunks = selectRelevantChunks(chunks, 4); // Take 4 chunks (~10k chars total)
+    let combinedContext = '';
     
-    const combinedContext = relevantChunks.join('\n\n[...]\n\n');
-    job.updateProgress(60); // 60%
+    if (extractedText.startsWith('__SCANNED_PDF_FALLBACK_BASE64__:')) {
+      logger.info({ jobId: job.id }, 'Scanned PDF detected. Bypassing text chunking, preparing direct multimodal vision analysis.');
+      combinedContext = extractedText; // Pass the entire base64 string directly
+      job.updateProgress(60); // 60%
+    } else {
+      // 2. Chunk (RAG Foundation)
+      const chunks = splitIntoChunks(extractedText, 2500, 500);
+      const relevantChunks = selectRelevantChunks(chunks, 4); // Take 4 chunks (~10k chars total)
+      combinedContext = relevantChunks.join('\n\n[...]\n\n');
+      job.updateProgress(60); // 60%
+    }
     
     // 3. AI Generation
     const questions = await aiService.generateTestQuestions(combinedContext, difficulty, numQuestions, userId);

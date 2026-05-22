@@ -21,23 +21,17 @@ const StudentHistoryPage = lazy(() => import('./pages/student/StudentHistoryPage
 const JoinBatchPage = lazy(() => import('./pages/student/JoinBatchPage'));
 const ProfilePage = lazy(() => import('./pages/common/ProfilePage'));
 
-// Loading Fallback
-const PageLoader = () => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-    <div className="w-10 h-10 border-3 border-zinc-200 border-t-zinc-900 rounded-full animate-spin mb-4" />
-    <p className="text-zinc-400 font-sans font-medium text-sm">Loading...</p>
-  </div>
-);
+import { FullPageLoader } from './components/ui/Loader';
 
 function AppRoutes() {
   const { user, role, loading } = useAuth();
   
-  if (loading) return <PageLoader />;
+  if (loading) return <FullPageLoader title="Loading Evalix" subtitle="Synchronizing secure session" />;
 
   const isValidRole = role === 'teacher' || role === 'student';
 
   return (
-    <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<FullPageLoader title="Resolving View" subtitle="Loading page assets..." />}>
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />

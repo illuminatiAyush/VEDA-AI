@@ -165,30 +165,100 @@ function safeParseJSON(raw, context = 'AI') {
 
 async function generateTestQuestions(documentText, difficulty, numQuestions, userId = null) {
   // ── Stage 1: Assessment Generation ──────────────────────────────
-  const genPrompt = `
-    Based on the following extracted text, generate an assessment with EXACTLY ${numQuestions} questions.
-    Difficulty level: ${difficulty.toUpperCase()}.
+  let genRaw;
 
-    TEXT SOURCE:
-    ${documentText}
-
-    OUTPUT FORMAT:
-    {
-      "mcqs": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "Exact option text"}],
-      "shortAnswers": [{"question": "...", "answer": "..."}]
-    }
+  if (documentText.startsWith('__SCANNED_PDF_FALLBACK_BASE64__:')) {
+    const base64Data = documentText.replace('__SCANNED_PDF_FALLBACK_BASE64__:', '');
+    logger.info('Invoking Multimodal OCR Engine via Gemini 2.0 Flash for scanned/image PDF...');
     
-    RULES:
-    - Each MCQ MUST have exactly 4 options.
-    - Questions must be unique.
-    - Return ONLY valid JSON. No conversational text.
-  `;
-  
-  const genRaw = await callAI(
-    'You are a professional assessment engine. Output valid JSON strictly. No markdown fences.',
-    genPrompt,
-    { temperature: 0.7, max_tokens: 4000, userId }
-  );
+    if (!GEMINI_API_KEY) {
+      throw new Error('Gemini API key is required to process scanned/image PDFs (OCR).');
+    }
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: `You are an expert AI assessment engine. Read this scanned PDF document, perform visual OCR, extract the text and diagrams, and generate an assessment with EXACTLY ${numQuestions} questions.
+                       Difficulty level: ${difficulty.toUpperCase()}.
+                       
+                       OUTPUT FORMAT:
+                       {
+                         "mcqs": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "Exact option text"}],
+                         "shortAnswers": [{"question": "...", "answer": "..."}]
+                       }
+                       
+                       RULES:
+                       - Each MCQ MUST have exactly 4 options.
+                       - Return ONLY valid JSON matching the format. No conversational text or markdown code blocks.`
+              },
+              {
+                inlineData: {
+                  mimeType: 'application/pdf',
+                  data: base64Data
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 4000,
+            responseMimeType: 'application/json',
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gemini Multimodal OCR failed: ${errText}`);
+      }
+
+      const data = await res.json();
+      genRaw = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!genRaw) {
+        throw new Error('Gemini Multimodal OCR returned empty response.');
+      }
+      
+      // Track token usage
+      if (data.usageMetadata?.totalTokenCount && userId) {
+        await trackTokenUsage(userId, data.usageMetadata.totalTokenCount, 'gemini-2.0-flash-vision');
+      }
+
+    } catch (err) {
+      logger.error({ err }, 'Gemini Multimodal OCR failed');
+      throw new Error(`Failed to read scanned PDF: ${err.message}`);
+    }
+  } else {
+    const genPrompt = `
+      Based on the following extracted text, generate an assessment with EXACTLY ${numQuestions} questions.
+      Difficulty level: ${difficulty.toUpperCase()}.
+
+      TEXT SOURCE:
+      ${documentText}
+
+      OUTPUT FORMAT:
+      {
+        "mcqs": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "Exact option text"}],
+        "shortAnswers": [{"question": "...", "answer": "..."}]
+      }
+      
+      RULES:
+      - Each MCQ MUST have exactly 4 options.
+      - Questions must be unique.
+      - Return ONLY valid JSON. No conversational text.
+    `;
+    
+    genRaw = await callAI(
+      'You are a professional assessment engine. Output valid JSON strictly. No markdown fences.',
+      genPrompt,
+      { temperature: 0.7, max_tokens: 4000, userId }
+    );
+  }
   
   const genParsed = safeParseJSON(genRaw, 'Generation');
 

@@ -39,7 +39,8 @@ async function extractTextFromPDF(fileBuffer) {
     text = text.trim();
 
     if (text.length < 50) {
-      throw new Error('No sufficient readable text found in the PDF. It might be an image-based PDF or corrupted.');
+      logger.info('Low readable text length. Triggering multimodal/OCR fallback for scanned PDF.');
+      return `__SCANNED_PDF_FALLBACK_BASE64__:${fileBuffer.toString('base64')}`;
     }
 
     const duration = (performance.now() - startTime).toFixed(0);
@@ -48,7 +49,9 @@ async function extractTextFromPDF(fileBuffer) {
     return text;
   } catch (error) {
     logger.error({ err: error }, 'Failed to extract text from PDF');
-    throw new Error('PDF extraction failed: ' + error.message);
+    // If pdf-parse itself throws, we can still attempt multimodal fallback as a absolute safety net
+    logger.info('Attempting emergency multimodal fallback after parse failure.');
+    return `__SCANNED_PDF_FALLBACK_BASE64__:${fileBuffer.toString('base64')}`;
   }
 }
 
