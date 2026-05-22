@@ -241,6 +241,34 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       debug.auth.warn('Logout error (non-critical)', { error: err.message });
     }
+
+    // ── 1. NUKE ALL COOKIES ──
+    try {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        
+        // Expire cookie instantly across all path levels
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname};`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname.split('.').slice(-2).join('.')};`;
+      }
+      debug.auth.info('All cookies purged successfully.');
+    } catch (cookieErr) {
+      debug.auth.warn('Failed to clear cookies', { error: cookieErr.message });
+    }
+
+    // ── 2. NUKE LOCAL & SESSION STORAGES ──
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      debug.auth.info('Session and local storages cleared.');
+    } catch (storageErr) {
+      debug.auth.warn('Failed to clear local storage', { error: storageErr.message });
+    }
+
     setUser(null);
     setRole(null);
     window.location.href = '/';

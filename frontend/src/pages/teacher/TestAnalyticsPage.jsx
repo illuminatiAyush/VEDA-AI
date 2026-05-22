@@ -11,6 +11,7 @@ import {
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
+import { FullPageLoader } from '../../components/ui/Loader';
 
 export default function TestAnalyticsPage() {
   const { id } = useParams();
@@ -56,12 +57,7 @@ export default function TestAnalyticsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-background border-t-brand rounded-full animate-spin shadow-soft mb-4"></div>
-        <p className="text-text-muted font-sans font-medium text-sm">Loading analytics...</p>
-      </div>
-    );
+    return <FullPageLoader title="Loading analytics..." subtitle="Processing secure telemetry details" />;
   }
 
   const avgScore = results.length > 0 

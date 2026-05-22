@@ -69,8 +69,10 @@ A. FRONTEND STATE ENGINE
    - Leverages an "Initialization Ref Guard" (`useRef(false)`) to guarantee that
      the remote session state listener (via `supabase.auth.onAuthStateChange`) is
      registered exactly ONCE.
-   - Recovers from browser token caches natively on boot before sending any RLS
-     requests.
+   - Recovers from browser token caches natively on boot before sending any RLS requests.
+   - Secure Logout Purge Flow: Upon logout, all session caching is destroyed. It invokes
+     a comprehensive nuke loop that programmatically iterates and expires all browser cookies, 
+     clears `localStorage` completely, and wipes `sessionStorage`, ensuring zero session footprints.
 
 2. Student Test Attempt & Offline-First Sync (`TestAttemptPage.jsx`):
    - Hydration Sync (Google Docs strategy):

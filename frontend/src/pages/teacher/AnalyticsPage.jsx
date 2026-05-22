@@ -14,6 +14,7 @@ import {
 import { apiService } from '../../lib/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import { FullPageLoader } from '../../components/ui/Loader';
 
 export default function AnalyticsPage() {
   const [usage, setUsage] = useState(null);
@@ -35,12 +36,7 @@ export default function AnalyticsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-14 h-14 border-4 border-background border-t-brand rounded-full animate-spin shadow-soft mb-4"></div>
-        <p className="text-text-muted font-sans font-medium text-sm">Synchronizing API Metrics...</p>
-      </div>
-    );
+    return <FullPageLoader title="Loading analytics..." subtitle="Synchronizing API Usage Metrics" />;
   }
 
   const percentageUsed = ((usage?.summary?.totalTokens || 0) / (usage?.summary?.limit || 100000)) * 100;

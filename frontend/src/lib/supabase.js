@@ -15,7 +15,7 @@ export const supabase = globalThis.__SUPABASE_CLIENT__ || createClient(supabaseU
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'evalix-auth-token', // Custom key forces a clean cache boundary
-    storage: window.localStorage,
+    storage: window.sessionStorage,
   },
 });
 
