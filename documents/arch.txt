@@ -73,6 +73,10 @@ A. FRONTEND STATE ENGINE
    - Secure Logout Purge Flow: Upon logout, all session caching is destroyed. It invokes
      a comprehensive nuke loop that programmatically iterates and expires all browser cookies, 
      clears `localStorage` completely, and wipes `sessionStorage`, ensuring zero session footprints.
+   - Vercel SPA Routing Rewrite Guard (`vercel.json`): Since EvaliX is a Single Page Application (SPA),
+     a hard page refresh on sub-routes triggers a direct HTTP request to Vercel edge nodes. To prevent
+     404: NOT_FOUND failures, a custom rewrite configuration in `vercel.json` matches all non-static paths
+     and silently delegates them back to `/index.html` where React Router handles the target path natively.
 
 2. Student Test Attempt & Offline-First Sync (`TestAttemptPage.jsx`):
    - Hydration Sync (Google Docs strategy):
