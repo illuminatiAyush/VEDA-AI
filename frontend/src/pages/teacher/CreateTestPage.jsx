@@ -337,7 +337,7 @@ export default function CreateTestPage() {
         <div className="lg:col-span-8 order-1 lg:order-2">
           <div className="h-full flex flex-col">
             <div className="mb-10">
-              <h1 className="text-4xl lg:text-6xl font-display font-extrabold leading-tight mb-4 tracking-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-extrabold leading-tight mb-4 tracking-tight">
                 Assessment <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-indigo-400">Architect</span>
               </h1>
@@ -351,7 +351,7 @@ export default function CreateTestPage() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`flex-1 min-h-[400px] border-2 border-dashed transition-all flex flex-col items-center justify-center p-12 text-center group ${isDragging
+              className={`flex-1 min-h-[400px] border-2 border-dashed transition-all flex flex-col items-center justify-center p-6 sm:p-12 text-center group ${isDragging
                   ? 'bg-brand/5 border-brand ring-4 ring-brand/10'
                   : file
                     ? 'bg-emerald-500/5 border-emerald-500/30'

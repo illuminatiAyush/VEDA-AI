@@ -168,112 +168,45 @@ export default function LandingPage() {
         <div className="absolute bottom-10 left-1/4 w-[500px] h-[500px] bg-orange-100/40 rounded-full blur-[140px] pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-emerald-100/30 rounded-full blur-[100px] pointer-events-none" />
 
-        <Container className="relative z-10 py-12 md:py-24">
-          <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            {/* Left Column: Hero Content */}
-            <motion.div 
-              variants={stagger} 
-              initial="hidden" 
-              animate="show" 
-              className="lg:col-span-7 flex flex-col items-start text-left max-w-2xl"
-            >
-              <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-700 text-xs font-semibold mb-6 border border-teal-100">
-                <Sparkles size={14} /> Next-Gen Assessment Platform
-              </motion.div>
-
-              <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-display font-extrabold leading-[1.1] tracking-tight mb-6 text-gray-900">
-                The future of{' '}
-                <span className="font-serif italic font-normal text-teal-600">assessments</span>
-                <br />
-                is <span className="gradient-text">already here.</span>
-              </motion.h1>
-
-              <motion.p variants={fadeUp} className="text-base md:text-lg text-gray-400 leading-relaxed mb-8 font-light">
-                Create <span className="font-serif italic text-gray-600">intelligent</span> tests in seconds, 
-                grade with <span className="font-serif italic text-gray-600">precision</span>, and unlock 
-                insights that <span className="font-serif italic text-gray-600">transform</span> education.
-              </motion.p>
-
-              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-10">
-                <Link to="/login" className="group flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3.5 bg-teal-500 text-white rounded-2xl font-bold text-base hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30">
-                  Start for Free <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link to="/login" className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3.5 border-2 border-gray-200 rounded-2xl font-semibold text-base text-gray-600 hover:border-teal-400 hover:text-teal-600 transition-all">
-                  Watch Demo
-                </Link>
-              </motion.div>
-
-              <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 w-full">
-                {STATS.map(s => (
-                  <div key={s.label} className="bg-white px-4 py-4 text-center">
-                    <div className="text-xl md:text-2xl font-display font-extrabold text-teal-600">
-                      {s.text ? s.text : <CountUp end={s.num} prefix={s.prefix || ''} suffix={s.suffix || ''} />}
-                    </div>
-                    <div className="text-[10px] font-medium text-gray-400 mt-1 uppercase tracking-wider">{s.label}</div>
-                  </div>
-                ))}
-              </motion.div>
+        <Container className="relative z-10 py-20">
+          <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col items-center text-center max-w-5xl mx-auto">
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-700 text-xs font-semibold mb-8 border border-teal-100">
+              <Sparkles size={14} /> Next-Gen Assessment Platform
             </motion.div>
 
-            {/* Right Column: Premium Cropped SaaS Mockup */}
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="lg:col-span-5 relative w-full flex justify-center"
-            >
-              {/* Glowing Background Accent */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-teal-400/20 to-orange-400/20 rounded-[2.5rem] blur-2xl -m-4 pointer-events-none" />
+            <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-display font-extrabold leading-[1.05] tracking-tight mb-6 text-gray-900">
+              The future of{' '}
+              <span className="font-serif italic font-normal text-teal-600">assessments</span>
+              <br className="hidden sm:block" />
+              is <span className="gradient-text">already here.</span>
+            </motion.h1>
 
-              {/* Student Photo Premium Frame */}
-              <div className="relative w-full max-w-md lg:max-w-none bg-white rounded-3xl p-3 border border-slate-100/90 shadow-2xl overflow-hidden group hover:shadow-[0_30px_60px_rgba(13,148,136,0.12)] hover:-translate-y-1 transition-all duration-500">
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 rounded-2xl">
-                  <img 
-                    src="/hero_student.png" 
-                    alt="EvaliX Proctored Student Exam Attempt" 
-                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                  />
-                  {/* Subtle Gradient Overlays */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent pointer-events-none" />
-                </div>
-              </div>
+            <motion.p variants={fadeUp} className="text-lg md:text-xl text-gray-400 leading-relaxed mb-10 max-w-2xl font-light">
+              Create <span className="font-serif italic text-gray-600">intelligent</span> tests in seconds, 
+              grade with <span className="font-serif italic text-gray-600">precision</span>, and unlock 
+              insights that <span className="font-serif italic text-gray-600">transform</span> education.
+            </motion.p>
 
-              {/* Float Card 1: Real-time Proctoring Status (Left Overlay) */}
-              <div className="absolute -bottom-4 -left-4 bg-white/95 backdrop-blur-md border border-slate-100 p-4 rounded-2xl shadow-xl flex items-center gap-3.5 sm:flex z-10 transition-transform duration-300 hover:scale-105">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/20">
-                  <Sparkles size={18} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <p className="text-xs font-bold text-slate-800">Visual RAG OCR</p>
-                  </div>
-                  <p className="text-[10px] font-medium text-slate-400">99.8% Question Extraction</p>
-                </div>
-              </div>
-
-              {/* Float Card 2: Interactive Proctor Tracker (Top Right Overlay) */}
-              <div className="absolute -top-6 -right-6 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col gap-2 z-10 text-white max-w-[210px] hidden sm:flex transition-transform duration-300 hover:scale-105">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-[9px] font-semibold text-teal-400 bg-teal-950 px-2 py-0.5 rounded-full uppercase tracking-wider">AI PROCTOR ACTIVE</span>
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold tracking-tight">Data Structures Attempt</p>
-                  <p className="text-[9px] text-slate-400 mt-0.5">VPPCOE&VA Student Portal</p>
-                </div>
-                <div className="h-px bg-slate-800 my-1" />
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-[9px] text-slate-300">
-                    <CheckCircle2 size={10} className="text-teal-400" /> Camera Feed Secure
-                  </div>
-                  <div className="flex items-center gap-2 text-[9px] text-slate-300">
-                    <CheckCircle2 size={10} className="text-teal-400" /> Tab-lock Enabled
-                  </div>
-                </div>
-              </div>
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4">
+              <Link to="/login" className="group flex items-center gap-2 px-8 py-4 bg-teal-500 text-white rounded-2xl font-bold text-base hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30">
+                Start for Free <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link to="/login" className="flex items-center gap-2 px-8 py-4 border-2 border-gray-200 rounded-2xl font-semibold text-base text-gray-600 hover:border-teal-400 hover:text-teal-600 transition-all">
+                Watch Demo
+              </Link>
             </motion.div>
-          </div>
+
+            <motion.div variants={fadeUp} className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 w-full max-w-2xl">
+              {STATS.map(s => (
+                <div key={s.label} className="bg-white px-6 py-5 text-center">
+                  <div className="text-2xl md:text-3xl font-display font-extrabold text-teal-600">
+                    {s.text ? s.text : <CountUp end={s.num} prefix={s.prefix || ''} suffix={s.suffix || ''} />}
+                  </div>
+                  <div className="text-[11px] font-medium text-gray-400 mt-1 uppercase tracking-wider">{s.label}</div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
         </Container>
       </section>
 
