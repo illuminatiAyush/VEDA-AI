@@ -223,40 +223,53 @@ export default function LandingPage() {
               className="lg:col-span-5 relative w-full flex justify-center"
             >
               {/* Glowing Background Accent */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-teal-400/20 to-orange-400/20 rounded-3xl blur-2xl -m-4 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-teal-400/20 to-orange-400/20 rounded-[2.5rem] blur-2xl -m-4 pointer-events-none" />
 
-              {/* Browser Shell Container */}
-              <div className="relative w-full max-w-md lg:max-w-none bg-white rounded-2xl border border-gray-100 shadow-2xl overflow-hidden group hover:shadow-[0_20px_50px_rgba(13,148,136,0.15)] transition-all duration-500">
-                {/* Browser Mock Window Header */}
-                <div className="flex items-center gap-1.5 px-4 py-3 bg-gray-50 border-b border-gray-100">
-                  <span className="w-3 h-3 bg-red-400 rounded-full" />
-                  <span className="w-3 h-3 bg-amber-400 rounded-full" />
-                  <span className="w-3 h-3 bg-emerald-400 rounded-full" />
-                  <div className="flex-1 max-w-[200px] mx-auto h-4 bg-white border border-gray-200/60 rounded-md flex items-center justify-center text-[8px] text-gray-400 font-medium font-mono select-none">
-                    evalix.app/dashboard
-                  </div>
-                </div>
-
-                {/* Cropped SaaS Screenshot Image */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
+              {/* Student Photo Premium Frame */}
+              <div className="relative w-full max-w-md lg:max-w-none bg-white rounded-3xl p-3 border border-slate-100/90 shadow-2xl overflow-hidden group hover:shadow-[0_30px_60px_rgba(13,148,136,0.12)] hover:-translate-y-1 transition-all duration-500">
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 rounded-2xl">
                   <img 
-                    src="/landing_preview.webp" 
-                    alt="Evalix SaaS Dashboard Preview" 
-                    className="absolute inset-0 w-[160%] h-[160%] max-w-none object-cover object-left-top transition-transform duration-700 group-hover:scale-105"
+                    src="/hero_student.png" 
+                    alt="EvaliX Proctored Student Exam Attempt" 
+                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                   />
                   {/* Subtle Gradient Overlays */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent pointer-events-none" />
                 </div>
               </div>
 
-              {/* Float badge indicator */}
-              <div className="absolute -bottom-4 -left-4 bg-white/90 backdrop-blur-md border border-gray-100 p-4 rounded-xl shadow-lg flex items-center gap-3 hidden sm:flex animate-pulse">
-                <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center text-white">
-                  <Sparkles size={16} />
+              {/* Float Card 1: Real-time Proctoring Status (Left Overlay) */}
+              <div className="absolute -bottom-4 -left-4 bg-white/95 backdrop-blur-md border border-slate-100 p-4 rounded-2xl shadow-xl flex items-center gap-3.5 sm:flex z-10 transition-transform duration-300 hover:scale-105">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/20">
+                  <Sparkles size={18} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-gray-800">Visual RAG OCR</p>
-                  <p className="text-[9px] font-medium text-gray-400">99.8% Accuracy</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <p className="text-xs font-bold text-slate-800">Visual RAG OCR</p>
+                  </div>
+                  <p className="text-[10px] font-medium text-slate-400">99.8% Question Extraction</p>
+                </div>
+              </div>
+
+              {/* Float Card 2: Interactive Proctor Tracker (Top Right Overlay) */}
+              <div className="absolute -top-6 -right-6 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col gap-2 z-10 text-white max-w-[210px] hidden sm:flex transition-transform duration-300 hover:scale-105">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[9px] font-semibold text-teal-400 bg-teal-950 px-2 py-0.5 rounded-full uppercase tracking-wider">AI PROCTOR ACTIVE</span>
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold tracking-tight">Data Structures Attempt</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">VPPCOE&VA Student Portal</p>
+                </div>
+                <div className="h-px bg-slate-800 my-1" />
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-[9px] text-slate-300">
+                    <CheckCircle2 size={10} className="text-teal-400" /> Camera Feed Secure
+                  </div>
+                  <div className="flex items-center gap-2 text-[9px] text-slate-300">
+                    <CheckCircle2 size={10} className="text-teal-400" /> Tab-lock Enabled
+                  </div>
                 </div>
               </div>
             </motion.div>
