@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,30 +6,31 @@
 
 @layer base {
   :root {
-    /* ─── EVALIX — FRESH TEAL + WARM ACCENTS ─────── */
-    --background: #fafbfc;
+    /* VedaAI — Figma palette */
+    --background: #f2f2f2;
     --surface: #ffffff;
-    --surface-muted: #f5f7fa;
+    --surface-muted: #ebebeb;
+    --frame: #2b2b2b;
 
-    --brand: #0d9488;        /* Teal-600 — calm, educational */
-    --brand-hover: #0f766e;
-    --brand-light: #ccfbf1;  /* Teal-100 */
-    --brand-glow: rgba(13, 148, 136, 0.10);
+    --brand: #ff6b00;
+    --brand-hover: #e55f00;
+    --brand-light: #fff4eb;
+    --brand-glow: rgba(255, 107, 0, 0.35);
 
-    --accent: #f97316;       /* Orange-500 — warm CTAs */
-    --accent-hover: #ea580c;
-    --accent-light: #fff7ed;
+    --primary: #1a1a1a;
+    --primary-hover: #000000;
 
-    --text: #1e293b;         /* Slate-800 */
-    --text-muted: #94a3b8;   /* Slate-400 */
-    --border: #e5e7eb;       /* Gray-200 */
-    --border-hover: #d1d5db;
+    --text: #1a1a1a;
+    --text-muted: #666666;
+    --text-subtle: #999999;
+    --border: #e5e5e5;
+    --border-hover: #d1d1d1;
 
     --danger: #ef4444;
     --danger-hover: #dc2626;
     --success: #22c55e;
     --warning: #f59e0b;
-    --ring: rgba(13, 148, 136, 0.20);
+    --ring: rgba(255, 107, 0, 0.25);
   }
 }
 
@@ -44,33 +45,51 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  @apply tracking-tight;
-  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  @apply tracking-tight font-semibold;
 }
 
 ::selection {
-  background: rgba(13, 148, 136, 0.12);
+  background: rgba(255, 107, 0, 0.12);
   color: inherit;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-gray-200 rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-gray-300; }
+::-webkit-scrollbar-thumb { @apply bg-neutral-300 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-neutral-400; }
 
 @layer utilities {
   .shadow-card {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 6px 16px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.03);
   }
-  .shadow-brand-glow {
-    box-shadow: 0 0 0 3px var(--brand-glow);
+  .shadow-soft {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   }
-  .gradient-text {
-    @apply text-transparent bg-clip-text;
-    background-image: linear-gradient(135deg, #0d9488 0%, #22c55e 50%, #f97316 100%);
+  .btn-veda-primary {
+    @apply bg-primary text-white font-semibold rounded-full transition-colors hover:bg-primary-hover;
+    box-shadow: 0 0 0 1px var(--brand);
+  }
+  .btn-veda-primary-plain {
+    @apply bg-primary text-white font-semibold rounded-full transition-colors hover:bg-primary-hover;
   }
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-gray-200 rounded-full; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-neutral-300 rounded-full; }
+}
+
+@media print {
+  aside,
+  nav,
+  header,
+  .print\\:hidden {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  #veda-question-paper {
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
 }

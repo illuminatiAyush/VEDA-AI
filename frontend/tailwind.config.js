@@ -8,9 +8,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['"Plus Jakarta Sans"', 'sans-serif'],
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        display: ['Inter', 'sans-serif'],
       },
       colors: {
         brand: {
@@ -18,11 +16,11 @@ export default {
           hover: 'var(--brand-hover)',
           light: 'var(--brand-light)',
         },
-        accent: {
-          DEFAULT: 'var(--accent)',
-          hover: 'var(--accent-hover)',
-          light: 'var(--accent-light)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          hover: 'var(--primary-hover)',
         },
+        frame: 'var(--frame)',
         background: 'var(--background)',
         surface: 'var(--surface)',
         'surface-muted': 'var(--surface-muted)',
@@ -30,6 +28,7 @@ export default {
         text: {
           DEFAULT: 'var(--text)',
           muted: 'var(--text-muted)',
+          subtle: 'var(--text-subtle)',
         },
         danger: {
           DEFAULT: 'var(--danger)',
@@ -38,17 +37,15 @@ export default {
         success: 'var(--success)',
         warning: 'var(--warning)',
       },
-      spacing: {
-        'xs': '8px',
-        'sm': '12px',
-        'md': '16px',
-        'lg': '24px',
-        'xl': '32px',
+      borderRadius: {
+        'veda': '16px',
+        'veda-lg': '20px',
+        'veda-xl': '24px',
       },
       boxShadow: {
-        'soft': '0 1px 3px rgba(0,0,0,0.03), 0 6px 16px rgba(0,0,0,0.02)',
-        'card': '0 1px 3px rgba(0,0,0,0.03), 0 6px 16px rgba(0,0,0,0.02)',
-        'brand-glow': '0 0 0 3px var(--brand-glow)',
+        'soft': '0 1px 3px rgba(0,0,0,0.06)',
+        'card': '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)',
+        'brand-glow': '0 0 0 1px var(--brand-glow)',
       },
     },
   },

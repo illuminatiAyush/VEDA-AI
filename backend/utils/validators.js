@@ -25,7 +25,6 @@ const createTestSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
   duration_minutes: z.coerce.number().int().min(1).max(300).default(30),
   total_marks: z.coerce.number().int().min(0).optional(),
-  batch_ids: z.array(z.string().uuid()).optional().nullable(),
   content: z.object({
     questions: z.array(z.object({
       question: z.string().min(1),
@@ -40,20 +39,7 @@ const createTestSchema = z.object({
   status: z.enum(['draft', 'scheduled', 'active', 'ended']).default('draft'),
 });
 
-/**
- * POST /api/start-attempt
- */
-const startAttemptSchema = z.object({
-  testId: z.string().uuid('Invalid test ID format'),
-});
 
-/**
- * POST /api/submit-attempt
- */
-const submitAttemptSchema = z.object({
-  attemptId: z.string().uuid('Invalid attempt ID format'),
-  answers: z.record(z.string(), z.string()),
-});
 
 /**
  * POST /api/test-status/:id
@@ -175,16 +161,27 @@ function validateAIQuestions(questions) {
   return validated;
 }
 
+const registerSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
 module.exports = {
   generateTestSchema,
   createTestSchema,
-  startAttemptSchema,
-  submitAttemptSchema,
   testStatusSchema,
   mcqQuestionSchema,
   shortAnswerSchema,
   aiAnalysisSchema,
   aiGenerationSchema,
+  registerSchema,
+  loginSchema,
   validate,
   validateOrThrow,
   validateBody,

@@ -1,47 +1,110 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { apiService } from '../../lib/api';
-import { 
-  FileText, 
-  Printer, 
-  Download, 
-  Share2, 
-  CheckCircle2, 
-  AlignLeft, 
-  ChevronLeft,
-  Clock,
-  BrainCircuit,
-  AlertCircle,
-  BarChart3,
-  Layers,
-  CheckCircle,
-  XCircle,
-  Calendar
-} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { Download, Calendar, XCircle, Clock } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Input from '../../components/ui/Input';
-import { localInputToISO, isoToLocalInput, formatIST } from '../../lib/timezone';
+import { localInputToISO, isoToLocalInput } from '../../lib/timezone';
+
+const DIFFICULTY_TAG = {
+  easy: 'Easy',
+  medium: 'Moderate',
+  hard: 'Challenging',
+};
+
+function QuestionPaperDocument({ test, questions }) {
+  const shortAnswers = questions.filter((q) => q.type === 'short' || q.type === 'long');
+  const mcqs = questions.filter((q) => q.type === 'mcq');
+  const sectionQuestions = shortAnswers.length > 0 ? shortAnswers : mcqs.length > 0 ? mcqs : questions;
+  const marksEach = test.total_marks && sectionQuestions.length
+    ? Math.max(1, Math.floor(test.total_marks / sectionQuestions.length))
+    : 2;
+
+  return (
+    <div id="veda-question-paper" className="bg-white rounded-veda-xl p-6 sm:p-10 shadow-soft text-primary text-sm leading-relaxed max-w-3xl mx-auto print:shadow-none">
+      <div className="text-center mb-6">
+        <h2 className="text-lg sm:text-xl font-bold">Delhi Public School, Sector-4, Bokaro</h2>
+        <p className="mt-2 font-medium">Subject: {test.title?.split(' ')[0] || 'Science'}</p>
+        <p className="font-medium">Class: 5th</p>
+      </div>
+
+      <div className="flex justify-between text-xs sm:text-sm text-text-muted mb-4 border-b border-border pb-4">
+        <span>Time Allowed: {test.duration_minutes || 45} minutes</span>
+        <span>Maximum Marks: {test.total_marks || sectionQuestions.length * marksEach}</span>
+      </div>
+
+      <p className="text-center text-xs text-text-muted mb-6 italic">
+        All questions are compulsory unless stated otherwise.
+      </p>
+
+      <div className="space-y-2 mb-6 text-sm">
+        <p>Name: __________</p>
+        <p>Roll Number: __________</p>
+        <p>Class: 5th Section: __________</p>
+      </div>
+
+      <h3 className="text-center font-bold text-base mb-4">Section A</h3>
+      <p className="font-bold mb-1">
+        {shortAnswers.length > 0 ? 'Short Answer Questions' : 'Multiple Choice Questions'}
+      </p>
+      <p className="italic text-text-muted text-xs mb-6">
+        *Attempt all questions. Each question carries {marksEach} marks*
+      </p>
+
+      <ol className="space-y-4 list-none pl-0">
+        {sectionQuestions.map((q, idx) => (
+          <li key={idx} className="text-sm">
+            <span className="font-medium">{idx + 1}. </span>
+            <span className="text-text-muted">[{DIFFICULTY_TAG[q.difficulty] || DIFFICULTY_TAG[test.difficulty] || 'Moderate'}] </span>
+            {q.question}
+            <span className="text-text-muted"> [{marksEach} Marks]</span>
+            {q.type === 'mcq' && q.options?.length > 0 && (
+              <ul className="mt-2 ml-6 space-y-1 list-disc text-text-muted">
+                {q.options.map((opt, oi) => (
+                  <li key={oi}>{String.fromCharCode(65 + oi)}. {opt}</li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      <p className="font-bold mt-8 mb-6">End of Question Paper</p>
+
+      <div className="border-t border-border pt-6">
+        <p className="font-bold mb-4">Answer Key:</p>
+        <ol className="space-y-3 list-decimal pl-5 text-sm text-text-muted">
+          {sectionQuestions.map((q, idx) => (
+            <li key={idx} className="leading-relaxed">
+              {q.answer || (q.type === 'mcq' ? `Correct option: ${q.answer}` : 'Refer to model answer.')}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
 
 export default function TestViewerPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const firstName =
+    user?.user_metadata?.full_name?.split(' ')[0] ||
+    user?.email?.split('@')[0]?.replace(/[._]/g, ' ') ||
+    'Lakshya';
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    loadTest();
-  }, [id]);
-
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduling, setScheduling] = useState(false);
   const [scheduleData, setScheduleData] = useState({
     duration_minutes: 30,
     start_time: '',
-    end_time: ''
+    end_time: '',
   });
 
   const loadTest = async () => {
@@ -52,7 +115,7 @@ export default function TestViewerPage() {
         setScheduleData({
           duration_minutes: data.duration_minutes,
           start_time: isoToLocalInput(data.start_time),
-          end_time: isoToLocalInput(data.end_time)
+          end_time: isoToLocalInput(data.end_time),
         });
       }
     } catch (err) {
@@ -64,6 +127,10 @@ export default function TestViewerPage() {
     }
   };
 
+  useEffect(() => {
+    loadTest();
+  }, [id]);
+
   const handleSchedule = async () => {
     setScheduling(true);
     try {
@@ -71,7 +138,7 @@ export default function TestViewerPage() {
         duration_minutes: scheduleData.duration_minutes,
         start_time: localInputToISO(scheduleData.start_time),
         end_time: localInputToISO(scheduleData.end_time),
-        status: 'scheduled'
+        status: 'scheduled',
       });
       toast.success('Test deployed and scheduled successfully.');
       setIsScheduling(false);
@@ -83,290 +150,94 @@ export default function TestViewerPage() {
     }
   };
 
+  const handlePrint = () => {
+    toast.info('Opening print dialog — choose "Save as PDF" to download.');
+    window.print();
+  };
+
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center">
-        <motion.div 
-          animate={{ scale: [1, 1.1, 1], rotate: [0, 180, 360] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="w-16 h-16 bg-surface border border-border rounded-xl flex items-center justify-center mb-6 shadow-soft"
-        >
-          <BrainCircuit className="text-brand" size={32} />
-        </motion.div>
-        <p className="text-text-muted font-sans font-medium text-sm animate-pulse">Loading Assessment Data...</p>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center">
+        <div className="w-10 h-10 border-2 border-border border-t-primary rounded-full animate-spin mb-4" />
+        <p className="text-sm text-text-muted">Loading assignment...</p>
       </div>
     );
   }
 
   if (error || !test) {
-    const isNotFound = error?.toLowerCase().includes('not found') || !test;
     return (
-      <Card p="xl" className="max-w-md mx-auto mt-20 text-center border-dashed">
-        <div className={`w-16 h-16 ${isNotFound ? 'bg-amber-500/10 text-amber-500' : 'bg-danger/10 text-danger'} rounded-xl flex items-center justify-center mx-auto mb-6`}>
-          {isNotFound ? <Clock size={32} /> : <AlertCircle size={32} />}
-        </div>
-        <h2 className="text-2xl font-display font-bold text-text mb-2">
-          {isNotFound ? 'Assessment Not Found' : 'Error'}
-        </h2>
-        <p className="text-text-muted font-sans mb-8">
-          {isNotFound 
-            ? "This assessment has been removed or is no longer available." 
-            : error}
-        </p>
-        <Button to="/teacher/dashboard" variant="primary">
-          <ChevronLeft size={18} className="mr-2" />
-          Back to Dashboard
-        </Button>
+      <Card p="xl" className="max-w-md mx-auto mt-12 text-center">
+        <h2 className="text-xl font-bold mb-2">Assignment Not Found</h2>
+        <p className="text-text-muted text-sm mb-6">{error || 'This assignment is unavailable.'}</p>
+        <Button to="/teacher/dashboard" variant="primary">Back to Assignments</Button>
       </Card>
     );
   }
 
-  const mcqs = (test.questions || []).filter(q => q.type === 'mcq');
-  const shortAnswers = (test.questions || []).filter(q => q.type === 'short');
-
-  const diffColors = {
-    easy: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    medium: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    hard: 'bg-danger/10 text-danger border-danger/20'
-  };
+  const questions = test.questions || [];
+  const introText = `Certainly, ${firstName}! Here are customized Question Paper for your CBSE Grade 8 Science classes on the NCERT chapters:`;
 
   return (
-    <div className="max-w-7xl mx-auto w-full">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6 pb-6 border-b border-border">
-        <div className="flex items-start gap-4">
-          <Button 
-            to="/teacher/dashboard" 
-            variant="ghost"
-            className="mt-1 px-2 py-2"
+    <div className="w-full max-w-5xl mx-auto pb-12">
+      {/* Dark frame — Figma AI toolkit / paper view */}
+      <div className="bg-frame rounded-veda-xl p-6 sm:p-8 text-white print:bg-white print:text-primary">
+        <p className="text-sm sm:text-base leading-relaxed mb-6 max-w-3xl print:hidden">
+          {introText.split('Question Paper').map((part, i, arr) =>
+            i < arr.length - 1 ? (
+              <span key={i}>{part}<strong>Question Paper</strong></span>
+            ) : (
+              <span key={i}>{part}</span>
+            )
+          )}
+        </p>
+        <div className="flex flex-wrap gap-3 mb-8 print:hidden">
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-primary rounded-full text-sm font-semibold hover:bg-surface-muted transition-colors"
           >
-            <ChevronLeft size={20} />
-          </Button>
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <span className={`px-2 py-1 rounded text-xs font-semibold uppercase border ${diffColors[test.difficulty] || diffColors.medium}`}>
-                {test.difficulty}
-              </span>
-              <span className="flex items-center gap-1 text-text-muted text-sm font-medium">
-                <Clock size={16} />
-                {test.duration_minutes || 30} mins
-              </span>
-              <span className="flex items-center gap-1 text-text-muted text-sm font-medium">
-                <Layers size={16} />
-                {test.questions?.length || 0} Questions
-              </span>
-            </div>
-            <h1 className="text-3xl lg:text-4xl font-display font-extrabold text-text leading-tight tracking-tight">
-              {test.title}
-            </h1>
-            <p className="text-text-muted mt-2 font-sans max-w-2xl text-base">
-              {test.is_ai_generated ? "AI-generated assessment. Please review the questions before scheduling." : "Manually created assessment."}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 self-end md:self-auto">
-          <Button variant="outline" className="px-3">
-            <Printer size={18} />
-          </Button>
-          <Button 
-            onClick={() => setIsScheduling(true)}
-            variant="primary"
+            <Download size={18} />
+            Download as PDF
+          </button>
+          <Link
+            to="/teacher/create-test"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border border-white/40 text-white rounded-full text-sm font-semibold hover:bg-white/10 lg:hidden"
           >
-            <Calendar size={18} className="mr-2" />
+            + Create New
+          </Link>
+          <Button onClick={() => setIsScheduling(true)} variant="white" size="md">
+            <Calendar size={16} className="mr-2" />
             Schedule
           </Button>
         </div>
+
+        <QuestionPaperDocument test={test} questions={questions} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
-        {/* Main Content: Questions */}
-        <div className="lg:col-span-8 space-y-12">
-          
-          {/* MCQs Section */}
-          {mcqs.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-brand/10 text-brand rounded-lg">
-                  <CheckCircle2 size={20} />
-                </div>
-                <h2 className="text-2xl font-display font-bold text-text">Multiple Choice Questions</h2>
-                <span className="ml-auto px-3 py-1 bg-surface border border-border text-text-muted text-xs font-medium rounded">
-                  {mcqs.length} Questions
-                </span>
-              </div>
-              
-              <div className="space-y-6">
-                {mcqs.map((q, idx) => (
-                  <Card 
-                    key={idx}
-                    p="lg" 
-                    className="group border-l-4 border-l-transparent hover:border-l-brand transition-all"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 rounded-md bg-surface border border-border flex items-center justify-center text-text-muted font-mono font-bold text-sm group-hover:bg-brand/10 group-hover:text-brand transition-colors group-hover:border-brand/30">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-display font-bold text-text mb-6 leading-relaxed">
-                          {q.question}
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {q.options.map((opt, oIdx) => {
-                            const letter = String.fromCharCode(65 + oIdx);
-                            const isCorrect = letter === q.answer;
-                            return (
-                              <div 
-                                key={oIdx} 
-                                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                                  isCorrect 
-                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' 
-                                    : 'bg-background border-border text-text-muted hover:border-text-muted'
-                                }`}
-                              >
-                                <span className={`w-6 h-6 rounded flex items-center justify-center font-mono text-xs font-bold ${isCorrect ? 'bg-emerald-500 text-background' : 'bg-surface text-text-muted'}`}>
-                                  {letter}
-                                </span>
-                                <span className={`text-sm ${isCorrect ? 'font-bold' : 'font-sans'}`}>{opt}</span>
-                                {isCorrect && <CheckCircle size={14} className="ml-auto opacity-60" />}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Short Answers Section */}
-          {shortAnswers.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-6 mt-12">
-                <div className="p-2 bg-zinc-900/10 text-zinc-900 rounded-lg">
-                  <AlignLeft size={20} />
-                </div>
-                <h2 className="text-2xl font-display font-bold text-text">Short Answer Questions</h2>
-                <span className="ml-auto px-3 py-1 bg-surface border border-border text-text-muted text-xs font-medium rounded">
-                  {shortAnswers.length} Questions
-                </span>
-              </div>
-              
-              <div className="space-y-6">
-                {shortAnswers.map((q, idx) => (
-                  <Card 
-                    key={idx}
-                    p="lg" 
-                    className="group border-l-4 border-l-transparent hover:border-l-zinc-900 transition-all"
-                  >
-                    <div className="flex items-start gap-4 mb-6">
-                      <div className="w-8 h-8 rounded-md bg-surface border border-border flex items-center justify-center text-text-muted font-mono font-bold text-sm group-hover:bg-zinc-900/10 group-hover:text-zinc-900 transition-colors group-hover:border-zinc-900/30">
-                        {idx + 1}
-                      </div>
-                      <h3 className="text-lg font-display font-bold text-text leading-relaxed flex-1 mt-1">
-                        {q.question}
-                      </h3>
-                    </div>
-                    <div className="bg-background rounded-lg p-5 border border-border mt-4 ml-12">
-                      <div className="flex items-center gap-2 mb-3 text-zinc-900">
-                        <BrainCircuit size={16} />
-                        <span className="text-xs font-semibold uppercase">Suggested Answer / Grading Key</span>
-                      </div>
-                      <p className="text-text-muted font-sans text-sm leading-relaxed">
-                        {q.answer}
-                      </p>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Right Sidebar: Controls & Stats */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card p="lg" className="sticky top-28 bg-surface">
-            <h3 className="text-xs font-semibold text-text-muted uppercase mb-6">Assessment Controls</h3>
-            
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center justify-between p-4 bg-background rounded-lg border border-border">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full ${test.status === 'active' ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : test.status === 'scheduled' ? 'bg-brand shadow-soft' : 'bg-text-muted'}`}></div>
-                  <span className="text-sm font-semibold text-text uppercase tracking-wider">{test.status}</span>
-                </div>
-                <span className="text-xs font-medium text-text-muted uppercase">Status</span>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-background rounded-lg border border-border">
-                <div className="flex items-center gap-3">
-                  <BarChart3 size={18} className="text-brand" />
-                  <span className="text-sm font-semibold text-text uppercase tracking-wider">Available</span>
-                </div>
-                <span className="text-xs font-medium text-text-muted uppercase">Analytics</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-background border border-border hover:border-brand/50 transition-all group">
-                <Download size={24} className="text-text-muted group-hover:text-brand" />
-                <span className="text-xs font-medium text-text-muted group-hover:text-text transition-colors">Export PDF</span>
-              </button>
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-background border border-border hover:border-brand/50 transition-all group">
-                <Share2 size={24} className="text-text-muted group-hover:text-brand" />
-                <span className="text-xs font-medium text-text-muted group-hover:text-text transition-colors">Share Link</span>
-              </button>
-            </div>
-
-            <hr className="my-6 border-border" />
-
-            <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/20 mb-6">
-              <div className="flex gap-2 text-amber-500 mb-2 items-center">
-                <AlertCircle size={16} className="shrink-0" />
-                <span className="text-sm font-semibold">Review Content</span>
-              </div>
-              <p className="text-sm text-amber-500/90 leading-relaxed font-sans">
-                Please review AI-generated questions to ensure accuracy before assigning to students.
-              </p>
-            </div>
-
-            <Button 
-              onClick={() => navigate(`/teacher/analytics/${id}`)}
-              variant="primary"
-              className="w-full text-base py-4"
-            >
-              <BarChart3 size={20} className="mr-2" />
-              View Analytics
-            </Button>
-          </Card>
-        </div>
-      </div>
-
-      {/* Scheduling Modal */}
+      {/* Scheduling Modal — unchanged logic */}
       <AnimatePresence>
         {isScheduling && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsScheduling(false)}
-              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               className="relative w-full max-w-lg"
             >
-              <Card p="xl" className="overflow-hidden border border-border shadow-2xl">
+              <Card p="xl" className="overflow-hidden border border-border shadow-card">
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-2xl font-display font-bold text-text mb-1 tracking-tight">Schedule Assessment</h2>
-                    <p className="text-text-muted font-sans text-sm">Set dates and duration for this assessment.</p>
+                    <h2 className="text-xl font-bold text-primary mb-1">Schedule Assessment</h2>
+                    <p className="text-text-muted text-sm">Set dates and duration for this assignment.</p>
                   </div>
-                  <button onClick={() => setIsScheduling(false)} className="p-2 hover:bg-surface rounded-lg transition-colors">
+                  <button type="button" onClick={() => setIsScheduling(false)} className="p-2 hover:bg-surface-muted rounded-lg">
                     <XCircle size={24} className="text-text-muted" />
                   </button>
                 </div>
@@ -375,52 +246,46 @@ export default function TestViewerPage() {
                   <div>
                     <label className="block text-sm font-semibold text-text-muted mb-2">Duration (Minutes)</label>
                     <div className="relative">
-                      <Clock className="absolute left-4 top-1/2 -tranzinc-y-1/2 text-text-muted" size={18} />
-                      <input 
-                        type="number" 
+                      <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                      <input
+                        type="number"
                         value={scheduleData.duration_minutes}
                         onChange={(e) => setScheduleData({ ...scheduleData, duration_minutes: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all text-text text-sm"
+                        className="w-full bg-surface-muted border border-border rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm"
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-text-muted mb-2">Start Date & Time</label>
-                      <input 
-                        type="datetime-local" 
-                        value={scheduleData.start_time}
-                        onChange={(e) => setScheduleData({ ...scheduleData, start_time: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg py-3 px-4 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all text-text text-sm"
-                      />
+                      <div className="relative">
+                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                        <input
+                          type="datetime-local"
+                          value={scheduleData.start_time}
+                          onChange={(e) => setScheduleData({ ...scheduleData, start_time: e.target.value })}
+                          className="w-full bg-surface-muted border border-border rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm cursor-pointer"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-text-muted mb-2">End Date & Time</label>
-                      <input 
-                        type="datetime-local" 
-                        value={scheduleData.end_time}
-                        onChange={(e) => setScheduleData({ ...scheduleData, end_time: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg py-3 px-4 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all text-text text-sm"
-                      />
+                      <div className="relative">
+                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                        <input
+                          type="datetime-local"
+                          value={scheduleData.end_time}
+                          onChange={(e) => setScheduleData({ ...scheduleData, end_time: e.target.value })}
+                          className="w-full bg-surface-muted border border-border rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20 text-sm cursor-pointer"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-10 flex gap-4">
-                  <Button 
-                    onClick={() => setIsScheduling(false)}
-                    variant="outline"
-                    className="flex-1 py-3"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleSchedule}
-                    disabled={scheduling}
-                    variant="primary"
-                    className="flex-1 py-3"
-                  >
+                  <Button onClick={() => setIsScheduling(false)} variant="outline" className="flex-1">Cancel</Button>
+                  <Button onClick={handleSchedule} disabled={scheduling} variant="primary" className="flex-1">
                     {scheduling ? 'Scheduling...' : 'Schedule'}
                   </Button>
                 </div>

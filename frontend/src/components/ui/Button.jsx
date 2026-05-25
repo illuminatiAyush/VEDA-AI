@@ -14,21 +14,22 @@ const Button = forwardRef(({
   ...props 
 }, ref) => {
   
-  const base = "relative inline-flex items-center justify-center font-sans font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-teal-300 disabled:opacity-50 disabled:cursor-not-allowed";
+  const base = "relative inline-flex items-center justify-center font-sans font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-brand/30 disabled:opacity-50 disabled:cursor-not-allowed";
   
   const sizes = {
-    sm: "px-3 py-1.5 text-xs",
-    md: "px-4 py-2.5 text-sm",
-    lg: "px-6 py-3 text-base",
+    sm: "px-3 py-1.5 text-xs rounded-full",
+    md: "px-5 py-2.5 text-sm rounded-full",
+    lg: "px-8 py-3.5 text-base rounded-full",
   };
 
   const variants = {
-    primary: "bg-teal-500 text-white hover:bg-teal-600 shadow-sm",
-    accent: "bg-orange-500 text-white hover:bg-orange-600 shadow-sm",
-    subtle: "bg-teal-50 text-teal-600 hover:bg-teal-100",
-    outline: "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300",
-    danger: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
-    ghost: "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+    primary: "bg-primary text-white hover:bg-primary-hover shadow-brand-glow",
+    accent: "bg-brand text-white hover:bg-brand-hover",
+    subtle: "bg-surface-muted text-primary hover:bg-border",
+    outline: "border border-border bg-white text-primary hover:bg-surface-muted rounded-full",
+    danger: "bg-danger text-white hover:bg-danger-hover rounded-full",
+    ghost: "text-text-muted hover:bg-surface-muted hover:text-primary rounded-xl",
+    white: "bg-white border border-border text-primary hover:bg-surface-muted rounded-full",
   };
 
   const combinedClassName = `${base} ${sizes[size] || sizes.md} ${variants[variant] || variants.primary} ${className}`;

@@ -1,127 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { apiService } from '../../lib/api';
-import { supabase } from '../../lib/supabase';
-import { 
-  PlusCircle, 
-  FileText, 
-  Users, 
-  TrendingUp, 
-  Clock, 
-  ChevronRight,
-  BrainCircuit,
-  Calendar,
-  MoreVertical,
-  ArrowRight
-} from 'lucide-react';
+import { Filter, Search, MoreVertical, Plus, ChevronDown } from 'lucide-react';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import { formatISTDate } from '../../lib/timezone';
+import EmptyAssignmentsIllustration from '../../components/vedaai/EmptyAssignmentsIllustration';
+import { formatDDMMYYYY } from '../../lib/timezone';
+import { useLayout } from '../../context/LayoutContext';
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 }
-};
+const FILTER_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'active', label: 'Active' },
+  { value: 'ended', label: 'Ended' },
+];
 
 export default function TeacherDashboard() {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dashboardStats, setDashboardStats] = useState({ totalAttempts: 0, classAvg: 0 });
-  const [attemptCounts, setAttemptCounts] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const { refreshAssignmentCount } = useLayout();
+
+  const loadDashboardData = useCallback(async () => {
+    try {
+      const data = await apiService.getMyTests();
+      setTests(data || []);
+      await refreshAssignmentCount();
+    } catch (err) {
+      console.warn('Could not load tests:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshAssignmentCount]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadDashboardData = async () => {
-      try {
-        // Load tests
-        let testList = [];
-        try {
-          const data = await apiService.getMyTests();
-          if (isMounted) testList = data || [];
-        } catch (err) {
-          console.warn('Could not load tests:', err.message);
-        }
-        
-        if (isMounted) setTests(testList);
-
-        // Load stats
-        try {
-          const stats = await apiService.getTeacherDashboardStats();
-          if (isMounted) setDashboardStats(stats);
-        } catch (err) {
-          console.warn('Could not load stats:', err.message);
-        }
-
-        // Load attempt counts
-        if (testList.length > 0) {
-          try {
-            const counts = await apiService.getTestAttemptCounts(testList.map(t => t.id));
-            if (isMounted) setAttemptCounts(counts);
-          } catch (err) {
-            console.warn('Could not load attempt counts:', err.message);
-          }
-        }
-      } catch (err) {
-        console.error('Dashboard load error:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
     loadDashboardData();
+  }, [loadDashboardData]);
 
-    // Set up realtime listener for new attempts and results
-    const channel = supabase.channel('teacher-dashboard-updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attempts' }, () => {
-        if (isMounted) {
-          toast.info('A student has started taking a test.');
-          loadDashboardData();
-        }
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'results' }, () => {
-        if (isMounted) {
-          toast.success('A student just submitted a test!');
-          loadDashboardData();
-        }
-      })
-      .subscribe();
+  const filteredTests = tests.filter((t) => {
+    const matchesSearch = (t.title || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-    return () => {
-      isMounted = false;
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const handleStartTest = async (testId) => {
-    try {
-      await apiService.updateTestStatus(testId, 'start');
-      toast.success('Assessment started manually. It is now active.');
-      loadDashboardData();
-    } catch (err) {
-      toast.error(err.message || 'Failed to start assessment');
-    }
-  };
-
-  const handleEndTest = async (testId) => {
-    toast('Force-end this assessment?', {
-      description: 'All active attempts will be auto-submitted.',
+  const handleDelete = (test) => {
+    toast('Delete this assignment?', {
+      description: `"${test.title}" will be permanently removed.`,
       action: {
-        label: 'Terminate',
+        label: 'Delete',
         onClick: async () => {
           try {
-            await apiService.updateTestStatus(testId, 'end');
-            toast.success('Assessment force-ended successfully.');
+            await apiService.updateTestStatus(test.id, 'delete'); // Delegate deletion securely
+            toast.success('Assignment deleted.');
+            setOpenMenuId(null);
             loadDashboardData();
           } catch (err) {
-            toast.error(err.message || 'Failed to force-end assessment');
+            toast.error(err.message || 'Failed to delete');
           }
         },
       },
@@ -129,203 +67,152 @@ export default function TeacherDashboard() {
     });
   };
 
-  const stats = [
-    { label: 'Generated Tests', value: tests.length, icon: BrainCircuit, color: 'text-zinc-900', bg: 'bg-zinc-100' },
-    { label: 'Total Attempts', value: dashboardStats.totalAttempts, icon: Users, color: 'text-orange-500', bg: 'bg-orange-50' },
-    { label: 'Class Avg.', value: `${dashboardStats.classAvg}%`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-  ];
+  const filterLabel = FILTER_OPTIONS.find((f) => f.value === statusFilter)?.label || 'All';
 
   return (
-    <div className="space-y-10">
-      {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pb-6 border-b border-border">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-zinc-800">Welcome back 👋</h1>
-          <p className="text-zinc-400 font-sans mt-1 text-sm">Manage your assessments and track student performance.</p>
+    <div className="bg-white rounded-veda-xl min-h-[calc(100vh-8rem)] lg:min-h-[calc(100vh-6rem)] shadow-soft overflow-hidden">
+      <div className="px-6 sm:px-8 pt-8 pb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="w-2 h-2 rounded-full bg-success shrink-0" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Assignments</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            to="/teacher/batches"
-            variant="outline"
-          >
-            <Users size={18} className="mr-2" />
-            Academic Sections
-          </Button>
-          <Button 
-            to="/teacher/create-test"
-            variant="primary"
-          >
-            <PlusCircle size={18} className="mr-2" />
-            Initialize Assessment
-          </Button>
-        </div>
+        <p className="text-sm text-text-muted ml-4">
+          Manage and create assignments for your classes.
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 md:grid-cols-12 gap-md"
-      >
-        {stats.map((stat, i) => (
-          <Card key={i} p="sm" className="md:col-span-4 flex items-center justify-between bg-surface border border-border">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center ${stat.bg} ${stat.color}`}>
-                <stat.icon size={20} className="sm:size-6" />
-              </div>
-              <div>
-                <p className="text-[10px] sm:text-xs font-semibold text-text-muted uppercase tracking-wider">{stat.label}</p>
-              </div>
+      {loading ? (
+        <div className="py-24 text-center">
+          <div className="w-10 h-10 border-2 border-border border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-text-muted">Loading assignments...</p>
+        </div>
+      ) : tests.length === 0 ? (
+        <div className="px-6 pb-16 flex flex-col items-center text-center max-w-lg mx-auto">
+          <EmptyAssignmentsIllustration className="mb-8" />
+          <h2 className="text-xl font-bold text-primary mb-3">No assignments yet</h2>
+          <p className="text-sm text-text-muted leading-relaxed mb-8">
+            Create your first assignment to start collecting and grading student submissions.
+            You can set up rubrics, define marking criteria, and let AI assist with grading.
+          </p>
+          <Button to="/teacher/create-test" variant="primary" size="lg">
+            <Plus size={18} className="mr-2" />
+            Create Your First Assignment
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="mx-4 sm:mx-6 mb-6 flex flex-col sm:flex-row sm:items-center gap-3 bg-surface-muted rounded-veda px-4 py-3">
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setFilterOpen(!filterOpen)}
+                className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-primary px-2 py-1"
+              >
+                <Filter size={18} />
+                <span>Filter By</span>
+                <span className="text-primary font-semibold">: {filterLabel}</span>
+                <ChevronDown size={14} className={filterOpen ? 'rotate-180' : ''} />
+              </button>
+              {filterOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1 z-20 w-40 bg-white border border-border rounded-veda shadow-card py-1">
+                    {FILTER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setStatusFilter(opt.value);
+                          setFilterOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-surface-muted ${
+                          statusFilter === opt.value ? 'font-semibold text-primary bg-surface-muted' : 'text-text-muted'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-            <h3 className={`text-2xl sm:text-4xl font-display font-bold text-right ${stat.color}`}>{stat.value}</h3>
-          </Card>
-        ))}
-      </motion.div>
-
-      {/* Main Grid: Recent Tests & Activity */}
-      <div className="grid lg:grid-cols-12 gap-lg">
-        <div className="lg:col-span-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-display font-bold flex items-center gap-3">
-              <div className="w-2 h-6 bg-brand rounded-sm"></div>
-              Active Evaluations
-            </h2>
-            <Link to="#" className="text-sm font-semibold text-brand hover:underline underline-offset-4 uppercase tracking-wider">View All</Link>
+            <div className="flex-1 relative">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtle" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search Assignment"
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
+              />
+            </div>
           </div>
 
-          <Card p="0" className="overflow-hidden bg-background">
-            {loading ? (
-              <div className="p-12 text-center">
-                <div className="w-10 h-10 border-4 border-brand/20 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-text-muted font-medium font-sans">Loading assessments...</p>
-              </div>
-            ) : tests.length > 0 ? (
-              <div className="divide-y divide-border">
-                {tests.map((test) => (
-                  <div key={test.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-surface transition-colors group gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-surface border border-border rounded-xl flex items-center justify-center text-text-muted group-hover:bg-brand/10 group-hover:text-brand transition-colors">
-                        <FileText size={24} />
-                      </div>
-                      <div>
-                        <h3 className="font-display font-bold group-hover:text-brand transition-colors">{test.title}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-xs font-semibold text-text-muted">
-                          <span className={`px-2 py-0.5 rounded-sm uppercase tracking-widest ${
-                            test.status === 'scheduled' ? 'bg-emerald-500/10 text-emerald-500' :
-                            test.status === 'active' ? 'bg-brand/10 text-brand' :
-                            test.status === 'ended' ? 'bg-surface text-text-muted border border-border' : 'bg-amber-500/10 text-amber-500'
-                          }`}>
-                            {test.status}
-                          </span>
-                          <span className="w-1 h-1 rounded-full bg-border"></span>
-                          <span className="flex items-center gap-1 uppercase">
-                            <Calendar size={12} />
-                            {formatISTDate(test.created_at)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-6 justify-between sm:justify-end">
-                      <div className="text-right">
-                        <p className="text-2xl font-display font-bold leading-none">{attemptCounts[test.id] || 0}</p>
-                        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest mt-1">Submissions</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {test.status === 'scheduled' && (
-                          <>
-                            <Button 
-                              onClick={() => handleStartTest(test.id)}
-                              variant="primary"
-                              className="px-3 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white border-transparent"
+          {filteredTests.length === 0 ? (
+            <p className="text-center py-12 text-sm text-text-muted">No assignments match your filter.</p>
+          ) : (
+            <div className="px-4 sm:px-6 pb-24 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredTests.map((test) => (
+                <div
+                  key={test.id}
+                  className="relative bg-white border border-border rounded-veda p-5 shadow-soft hover:shadow-card transition-shadow"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-8">
+                    <Link to={`/teacher/test/${test.id}`} className="font-bold text-primary text-base leading-snug pr-2 hover:underline">
+                      {test.title || 'Quiz on Electricity'}
+                    </Link>
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setOpenMenuId(openMenuId === test.id ? null : test.id);
+                        }}
+                        className="p-1 text-text-muted hover:text-primary rounded-lg"
+                        aria-label="Options"
+                      >
+                        <MoreVertical size={20} />
+                      </button>
+                      {openMenuId === test.id && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                          <div className="absolute right-0 top-8 z-20 w-44 bg-white rounded-veda shadow-card border border-border py-1 overflow-hidden">
+                            <Link
+                              to={`/teacher/test/${test.id}`}
+                              className="block px-4 py-2.5 text-sm font-medium text-primary hover:bg-surface-muted"
+                              onClick={() => setOpenMenuId(null)}
                             >
-                              Start Now
-                            </Button>
-                            <Button 
-                              onClick={() => handleEndTest(test.id)}
-                              variant="danger"
-                              className="px-3 py-1.5 text-xs"
+                              View Assignment
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(test)}
+                              className="w-full text-left px-4 py-2.5 text-sm text-danger hover:bg-red-50"
                             >
-                              Terminate
-                            </Button>
-                          </>
-                        )}
-                        {test.status === 'draft' ? (
-                          <Button 
-                            to={`/teacher/test/${test.id}`} 
-                            variant="outline"
-                            className="px-3 py-1.5 text-xs"
-                          >
-                            Configure
-                            <ChevronRight size={14} className="ml-1" />
-                          </Button>
-                        ) : (
-                          <Button 
-                            to={`/teacher/analytics/${test.id}`} 
-                            variant="primary"
-                            className="px-3 py-1.5 text-xs"
-                          >
-                            Analytics
-                            <ChevronRight size={14} className="ml-1" />
-                          </Button>
-                        )}
-                      </div>
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-20 text-center">
-                <div className="w-20 h-20 bg-surface border border-border rounded-full flex items-center justify-center mx-auto mb-6 text-text-muted">
-                  <BrainCircuit size={40} />
+                  <Link to={`/teacher/test/${test.id}`} className="flex items-center justify-between text-xs text-text-muted hover:text-primary">
+                    <span>Assigned on : {formatDDMMYYYY(test.created_at || test.createdAt)}</span>
+                    <span>Due : {formatDDMMYYYY(test.end_time || test.start_time)}</span>
+                  </Link>
                 </div>
-                <h3 className="text-xl font-display font-bold mb-2">No assessments found</h3>
-                <p className="text-text-muted max-w-xs mx-auto mb-8 font-sans">
-                  Create your first AI-generated assessment to get started.
-                </p>
-                <Button to="/teacher/create-test" variant="primary">
-                  Create Now
-                  <ArrowRight size={18} className="ml-2" />
-                </Button>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Sidebar Activity */}
-        <div className="lg:col-span-4">
-          {tests.length > 0 && (
-            <Card p="lg" className="bg-surface sticky top-28">
-              <h3 className="font-display font-bold mb-6 flex items-center gap-2">
-                <TrendingUp size={18} className="text-brand" />
-                Global Analytics
-              </h3>
-              <div className="space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-border">
-                  <span className="text-sm font-sans font-medium text-text-muted">Class Average</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-display font-bold text-emerald-500">{dashboardStats.classAvg}%</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pb-4 border-b border-border">
-                  <span className="text-sm font-sans font-medium text-text-muted">Total Assessments</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-display font-bold text-brand">{tests.length}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-sans font-medium text-text-muted">Activity Level</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-semibold uppercase tracking-wider ${dashboardStats.totalAttempts > 0 ? 'text-orange-500' : 'text-zinc-400'}`}>
-                      {dashboardStats.totalAttempts > 0 ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Card>
+              ))}
+            </div>
           )}
-        </div>
-      </div>
+
+          <div className="hidden sm:flex fixed bottom-8 left-1/2 -translate-x-1/2 z-20 lg:left-[calc(260px+(100%-260px)/2)]">
+            <Button to="/teacher/create-test" variant="primary" size="lg">
+              <Plus size={18} className="mr-2" />
+              Create Assignment
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

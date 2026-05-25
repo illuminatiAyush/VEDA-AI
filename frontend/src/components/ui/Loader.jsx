@@ -16,7 +16,7 @@ export function SleekSpinner({ size = 'md', className = '' }) {
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-        className={`rounded-full border-t-brand border-r-transparent border-b-teal-200/30 border-l-transparent ${sizeClasses[size] || sizeClasses.md} shadow-[0_0_15px_rgba(13,148,136,0.15)]`}
+        className={`rounded-full border-t-brand border-r-transparent border-b-neutral-200 border-l-transparent ${sizeClasses[size] || sizeClasses.md} shadow-[0_0_15px_rgba(255,107,0,0.12)]`}
       />
     </div>
   );
@@ -54,7 +54,7 @@ export function BrainPulse({ className = '' }) {
         </motion.div>
       </div>
       <p className="mt-4 font-display font-bold text-gray-800 text-sm tracking-tight">Synthesizing Context...</p>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1 animate-pulse">Evalix AI Core</p>
+      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1 animate-pulse">VedaAI</p>
     </div>
   );
 }
@@ -117,7 +117,7 @@ export function GlowingRing({ className = '' }) {
  */
 export function FullPageLoader({ title = 'Initializing Session', subtitle = 'Preparing your workspace' }) {
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       <div className="relative mb-6">
         <GlowingRing />
       </div>

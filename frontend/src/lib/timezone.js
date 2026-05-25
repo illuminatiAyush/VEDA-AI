@@ -45,6 +45,31 @@ export function formatISTDate(date) {
 }
 
 /**
+ * Formats date as DD-MM-YYYY (Figma assignment cards).
+ */
+/**
+ * Parses DD-MM-YYYY to ISO end-of-day UTC-ish (local midnight end).
+ */
+export function parseDDMMYYYYToISO(str) {
+  if (!str?.trim()) return null;
+  const parts = str.trim().split(/[-/]/);
+  if (parts.length !== 3) return null;
+  const [d, m, y] = parts.map((p) => parseInt(p, 10));
+  if (!d || !m || !y) return null;
+  const date = new Date(y, m - 1, d, 23, 59, 59);
+  if (isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+export function formatDDMMYYYY(date) {
+  if (!date) return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '—';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+}
+
+/**
  * Converts a datetime-local input value (no timezone) to a proper ISO string.
  * The datetime-local input gives us "2026-04-27T22:30" which is local time.
  * new Date() treats this as local time, so .toISOString() converts it correctly to UTC.
@@ -54,12 +79,10 @@ export function formatISTDate(date) {
 export function localInputToISO(localDateTimeStr) {
   if (!localDateTimeStr) return null;
   try {
-    // "YYYY-MM-DDTHH:mm" format
     const [datePart, timePart] = localDateTimeStr.split('T');
     const [year, month, day] = datePart.split('-');
     const [hour, minute] = timePart.split(':');
     
-    // new Date(year, monthIndex, day, hours, minutes) explicitly uses the local timezone
     const d = new Date(year, month - 1, day, hour, minute);
     if (isNaN(d.getTime())) return null;
     return d.toISOString();
@@ -70,7 +93,6 @@ export function localInputToISO(localDateTimeStr) {
 
 /**
  * Converts an ISO/UTC date string to a value suitable for datetime-local input.
- * This is the reverse of localInputToISO — takes UTC and shows local time.
  * @param {string} isoStr - ISO 8601 date string
  * @returns {string} Format: "YYYY-MM-DDTHH:MM" in local time
  */
@@ -78,7 +100,6 @@ export function isoToLocalInput(isoStr) {
   if (!isoStr) return '';
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return '';
-  // Format as local datetime for the input
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

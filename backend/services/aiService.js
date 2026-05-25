@@ -8,22 +8,21 @@
 
 const { logger } = require('../utils/logger');
 const { aiAnalysisSchema, aiGenerationSchema, validateAIQuestions } = require('../utils/validators');
-const { supabaseAdmin } = require('../utils/supabaseClient');
+const ApiUsage = require('../models/ApiUsage');
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Track token usage in DB
 async function trackTokenUsage(userId, tokens, model) {
-  if (!userId || !tokens) return;
+  if (!tokens) return;
   try {
-    await supabaseAdmin.from('api_usage').insert({
-      user_id: userId,
-      tokens_used: tokens,
-      model: model
+    await ApiUsage.create({
+      model: model,
+      total_tokens: tokens,
     });
   } catch (err) {
-    logger.error({ err, userId }, 'Failed to track token usage');
+    logger.error({ err }, 'Failed to track token usage');
   }
 }
 

@@ -9,26 +9,20 @@ import { Toaster } from 'sonner';
 // Lazy load pages
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
+const TeacherHomePage = lazy(() => import('./pages/teacher/TeacherHomePage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
+const ToolkitPage = lazy(() => import('./pages/teacher/ToolkitPage'));
+const LibraryPage = lazy(() => import('./pages/teacher/LibraryPage'));
 const CreateTestPage = lazy(() => import('./pages/teacher/CreateTestPage'));
 const TestViewerPage = lazy(() => import('./pages/teacher/TestViewerPage'));
-const TestAnalyticsPage = lazy(() => import('./pages/teacher/TestAnalyticsPage'));
-const BatchManagementPage = lazy(() => import('./pages/teacher/BatchManagementPage'));
-const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
-const TestAttemptPage = lazy(() => import('./pages/student/TestAttemptPage'));
-const TestResultsPage = lazy(() => import('./pages/student/TestResultsPage'));
-const StudentHistoryPage = lazy(() => import('./pages/student/StudentHistoryPage'));
-const JoinBatchPage = lazy(() => import('./pages/student/JoinBatchPage'));
 const ProfilePage = lazy(() => import('./pages/common/ProfilePage'));
 
 import { FullPageLoader } from './components/ui/Loader';
 
 function AppRoutes() {
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
   
-  if (loading) return <FullPageLoader title="Loading Evalix" subtitle="Synchronizing secure session" />;
-
-  const isValidRole = role === 'teacher' || role === 'student';
+  if (loading) return <FullPageLoader title="Loading VedaAI" subtitle="Synchronizing secure session" />;
 
   return (
     <Suspense fallback={<FullPageLoader title="Resolving View" subtitle="Loading page assets..." />}>
@@ -37,29 +31,19 @@ function AppRoutes() {
         <Route path="/" element={<LandingPage />} />
         <Route 
           path="/login" 
-          element={user && isValidRole ? <Navigate to={`/${role}/dashboard`} replace /> : <AuthPage />} 
+          element={user ? <Navigate to="/teacher/home" replace /> : <AuthPage />} 
         />
 
-        {/* Teacher */}
-        <Route element={<ProtectedRoute allowedRole="teacher" />}>
+        {/* App Framework */}
+        <Route element={<ProtectedRoute />}>
           <Route path="/teacher" element={<MainLayout />}>
+            <Route index element={<Navigate to="home" replace />} />
+            <Route path="home" element={<TeacherHomePage />} />
             <Route path="dashboard" element={<TeacherDashboard />} />
+            <Route path="toolkit" element={<ToolkitPage />} />
+            <Route path="library" element={<LibraryPage />} />
             <Route path="create-test" element={<CreateTestPage />} />
             <Route path="test/:id" element={<TestViewerPage />} />
-            <Route path="analytics/:id" element={<TestAnalyticsPage />} />
-            <Route path="batches" element={<BatchManagementPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-          </Route>
-        </Route>
-
-        {/* Student */}
-        <Route element={<ProtectedRoute allowedRole="student" />}>
-          <Route path="/student" element={<MainLayout />}>
-            <Route path="dashboard" element={<StudentDashboard />} />
-            <Route path="test/:id" element={<TestAttemptPage />} />
-            <Route path="results/:id" element={<TestResultsPage />} />
-            <Route path="history" element={<StudentHistoryPage />} />
-            <Route path="join-batch" element={<JoinBatchPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Route>
@@ -90,7 +74,7 @@ function App() {
               border: '1px solid #e2e8f0',
               borderRadius: '12px',
               fontSize: '13px',
-              fontFamily: '"DM Sans", sans-serif',
+              fontFamily: 'Inter, sans-serif',
               boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
             },
           }}

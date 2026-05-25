@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { 
   User, 
@@ -16,6 +15,8 @@ import {
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
 
 export default function ProfilePage() {
   const { user, role, logout } = useAuth();
@@ -36,10 +37,21 @@ export default function ProfilePage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ 
-        password: passwords.newPassword 
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/auth/update-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: passwords.newPassword })
       });
-      if (error) throw error;
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update password');
+      }
+
       toast.success('Password updated successfully');
       setPasswords({ newPassword: '', confirmPassword: '' });
     } catch (err) {
@@ -73,7 +85,7 @@ export default function ProfilePage() {
                 <div className={`w-20 h-20 rounded-2xl flex items-center justify-center font-display font-bold text-3xl mb-4 ${role === 'teacher' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
                   {user?.email?.[0].toUpperCase()}
                 </div>
-                <h2 className="text-xl font-bold">{user?.email?.split('@')[0]}</h2>
+                <h2 className="text-xl font-bold">{user?.name || user?.email?.split('@')[0]}</h2>
                 <div className="flex items-center gap-2 px-3 py-1 bg-surface-muted border border-border rounded-full mt-3">
                   <Shield size={14} className="text-brand" />
                   <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">{role} Workspace</span>

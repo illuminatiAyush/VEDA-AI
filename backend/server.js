@@ -12,6 +12,7 @@ const cors = require('@fastify/cors');
 const multipart = require('@fastify/multipart');
 const rateLimit = require('@fastify/rate-limit');
 const logger = require('./utils/logger');
+const connectDB = require('./config/db');
 
 const app = fastify({
   logger: logger.pinoConfig,
@@ -20,6 +21,9 @@ const app = fastify({
 
 // ─── Plugins ─────────────────────────────────────────────────────
 async function start() {
+  // Connect to MongoDB
+  await connectDB();
+
   // CORS — allow frontend origin
   await app.register(cors, {
     origin: true, // Reflects the origin of the request, allowing localhost, 127.0.0.1, and network IPs
@@ -56,9 +60,9 @@ async function start() {
   require('./workers/testWorker');
 
   // ─── Routes ──────────────────────────────────────────────────────
+  app.register(require('./routes/authRoutes'), { prefix: '/api' });
   app.register(require('./routes/aiRoutes'), { prefix: '/api' });
   app.register(require('./routes/testRoutes'), { prefix: '/api' });
-  app.register(require('./routes/attemptRoutes'), { prefix: '/api' });
 
   // ─── Health Check ────────────────────────────────────────────────
   app.get('/health', async () => ({
@@ -69,13 +73,21 @@ async function start() {
   }));
 
   // ─── Global Error Handler ────────────────────────────────────────
+  // Show REAL error messages in responses (not generic "Internal server error")
+  // so the frontend console and UI can display what actually went wrong.
   app.setErrorHandler((error, request, reply) => {
-    request.log.error({ err: error }, 'Unhandled error');
-
     const statusCode = error.statusCode || 500;
+    
+    // Always log the full error with stack trace in the backend console
+    console.error(`\n  ❌ [${request.method}] ${request.url} → ${statusCode}`);
+    console.error(`  Message: ${error.message}`);
+    if (error.stack) console.error(`  Stack: ${error.stack.split('\n').slice(0, 3).join('\n  ')}`);
+    
+    request.log.error({ err: error, url: request.url, method: request.method }, 'Unhandled error');
+
     reply.status(statusCode).send({
       success: false,
-      error: statusCode === 500 ? 'Internal server error' : error.message,
+      error: error.message || 'Internal server error',
     });
   });
 

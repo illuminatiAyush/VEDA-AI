@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { BrainCircuit, ShieldCheck, GraduationCap, ArrowRight } from 'lucide-react';
+import { ShieldCheck, GraduationCap, ArrowRight } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
+import VedaLogo from '../components/vedaai/VedaLogo';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +30,7 @@ export default function AuthPage() {
     if (isLogin) {
       result = await login(email, password);
     } else {
-      result = await signup(email, password, role);
+      result = await signup(email, password);
     }
 
     if (!result.success) {
@@ -41,11 +41,7 @@ export default function AuthPage() {
 
     setLoading(false);
 
-    // Use the role from the auth result (most reliable source)
-    const userRole = result.role || role;
-    const redirectPath = userRole === 'teacher' ? '/teacher/dashboard' : '/student/dashboard';
-    
-    navigate(redirectPath, { replace: true });
+    navigate('/teacher/home', { replace: true });
   };
 
   return (
@@ -58,19 +54,16 @@ export default function AuthPage() {
         <div className="absolute inset-0  opacity-20 pointer-events-none"></div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-soft">
-              <BrainCircuit size={24} />
-            </div>
-            <span className="text-2xl font-display font-bold tracking-tight">Evalix Core</span>
+          <div className="mb-12">
+            <VedaLogo size="lg" />
           </div>
 
           <div className="space-y-6 max-w-lg">
-            <h1 className="text-5xl font-display font-extrabold leading-[1.1] tracking-tighter">
-              Authenticate <br /> <span className="text-brand">System Access.</span>
+            <h1 className="text-4xl font-bold leading-[1.15] tracking-tight text-primary">
+              Sign in to manage assignments and AI grading.
             </h1>
-            <p className="text-lg text-text-muted font-sans leading-relaxed">
-              Initialize connection to the Groq-backed AI assessment engine. Secure authentication protocol active.
+            <p className="text-lg text-text-muted leading-relaxed">
+              Create assignments, collect student submissions, and let AI assist with grading.
             </p>
           </div>
         </div>
@@ -102,11 +95,14 @@ export default function AuthPage() {
           className="w-full max-w-md relative z-10"
         >
           <div className="text-center lg:text-left mb-10">
-            <h2 className="text-4xl font-display font-extrabold tracking-tight text-text">
-              {isLogin ? 'System Authentication' : 'Institutional Registration'}
+            <div className="lg:hidden mb-6 flex justify-center">
+              <VedaLogo />
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-primary">
+              {isLogin ? 'Welcome back' : 'Create your account'}
             </h2>
-            <p className="text-brand mt-3 font-mono text-xs uppercase tracking-widest">
-              {isLogin ? 'Protocol: Awaiting Credentials' : 'Protocol: Awaiting Initialization'}
+            <p className="text-text-muted mt-2 text-sm">
+              {isLogin ? 'Enter your credentials to continue.' : 'Join as a teacher or student.'}
             </p>
           </div>
 
@@ -132,12 +128,12 @@ export default function AuthPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@evalix.core"
+                placeholder="you@school.edu"
                 size="lg"
               />
 
               <Input 
-                label="Security Key"
+                label="Password"
                 type="password" 
                 required
                 value={password}
@@ -146,44 +142,7 @@ export default function AuthPage() {
                 size="lg"
               />
 
-              <AnimatePresence>
-                {!isLogin && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-3 overflow-hidden"
-                  >
-                    <label className="block text-[10px] font-mono font-bold text-text-muted mb-2 uppercase tracking-widest">Select Institutional Role</label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setRole('student')}
-                        className={`py-3 px-4 rounded-xl border-2 font-display font-bold transition-all flex items-center justify-center gap-2 ${
-                          role === 'student' 
-                            ? 'border-brand bg-brand/10 text-brand shadow-soft' 
-                            : 'border-border bg-surface text-text-muted hover:border-text-muted'
-                        }`}
-                      >
-                        <GraduationCap size={18} />
-                        Candidate
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRole('teacher')}
-                        className={`py-3 px-4 rounded-xl border-2 font-display font-bold transition-all flex items-center justify-center gap-2 ${
-                          role === 'teacher' 
-                            ? 'border-zinc-900 bg-zinc-900/10 text-zinc-900 shadow-[0_0_15px_rgba(168,85,247,0.3)]' 
-                            : 'border-border bg-surface text-text-muted hover:border-text-muted'
-                        }`}
-                      >
-                        <ShieldCheck size={18} />
-                        Instructor
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
             </div>
 
             <Button 
@@ -192,19 +151,51 @@ export default function AuthPage() {
               loading={loading}
               className="w-full py-4 text-base shadow-soft"
             >
-              {isLogin ? 'Authenticate' : 'Initialize'}
+              {isLogin ? 'Sign in' : 'Create account'}
               <ArrowRight size={18} className="ml-2" />
             </Button>
           </form>
 
+          {isLogin && (
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center my-4">
+                <div className="flex-grow border-t border-border"></div>
+                <span className="mx-4 text-xs font-semibold text-text-muted tracking-wider uppercase">Demo Sandbox</span>
+                <div className="flex-grow border-t border-border"></div>
+              </div>
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (loading) return;
+                    setLoading(true);
+                    setError('');
+                    const res = await login('teacher@veda.ai', '123456');
+                    if (res.success) {
+                      navigate('/teacher/home', { replace: true });
+                    } else {
+                      setError(res.error || 'Demo login failed');
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="w-full py-3 px-4 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-display font-bold text-sm transition-all flex items-center justify-center gap-2 group hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <ShieldCheck size={16} className="text-primary group-hover:animate-pulse" />
+                  Teacher Demo
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="pt-8 mt-8 border-t border-border text-center">
             <p className="text-text-muted font-medium font-sans text-sm">
-              {isLogin ? "No clearance yet? " : "Already initialized? "}
+              {isLogin ? "Don't have an account? " : 'Already have an account? '}
               <button 
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-brand font-bold hover:underline underline-offset-4"
+                className="text-brand font-semibold hover:underline underline-offset-4"
               >
-                {isLogin ? 'Request access' : 'Authenticate here'}
+                {isLogin ? 'Sign up' : 'Sign in'}
               </button>
             </p>
           </div>

@@ -155,15 +155,10 @@ async function aiRoutes(fastify, options) {
    */
   fastify.get('/usage', async (request, reply) => {
     try {
-      const { supabaseAdmin } = require('../utils/supabaseClient');
-      const { data, error } = await supabaseAdmin
-        .from('api_usage')
-        .select('*')
-        .eq('user_id', request.user.id);
+      const ApiUsage = require('../models/ApiUsage');
+      const data = await ApiUsage.find({}); // Globally track usage metrics
 
-      if (error) throw error;
-
-      const totalTokens = data.reduce((sum, item) => sum + item.tokens_used, 0);
+      const totalTokens = data.reduce((sum, item) => sum + (item.total_tokens || item.tokens_used || 0), 0);
       const generationCount = data.length;
       
       // Calculate daily breakdown for the last 7 days
@@ -175,8 +170,11 @@ async function aiRoutes(fastify, options) {
 
       const dailyBreakdown = last7Days.map(date => {
         const tokens = data
-          .filter(item => item.created_at.startsWith(date))
-          .reduce((sum, item) => sum + item.tokens_used, 0);
+          .filter(item => {
+            const createdAtStr = item.createdAt ? item.createdAt.toISOString() : '';
+            return createdAtStr.startsWith(date);
+          })
+          .reduce((sum, item) => sum + (item.total_tokens || item.tokens_used || 0), 0);
         return { date, tokens };
       });
 

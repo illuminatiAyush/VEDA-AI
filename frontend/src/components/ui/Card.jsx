@@ -18,7 +18,7 @@ const Card = forwardRef(({
   };
 
   const baseStyles = "bg-white border border-zinc-100 rounded-2xl shadow-soft transition-all duration-200";
-  const interactiveStyles = interactive ? "cursor-pointer hover:border-teal-200 hover:shadow-md" : "";
+  const interactiveStyles = interactive ? "cursor-pointer hover:border-brand/30 hover:shadow-md" : "";
   
   return (
     <motion.div

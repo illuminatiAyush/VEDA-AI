@@ -2,66 +2,58 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  BrainCircuit,
-  Sparkles,
-  Settings2,
-  FileText,
+  ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   UploadCloud,
-  X,
+  Calendar,
+  Plus,
   File as FileIcon,
-  ShieldCheck,
-  Zap,
-  BarChart3,
-  Dna,
-  AlertCircle
+  BrainCircuit,
 } from 'lucide-react';
 import { apiService } from '../../lib/api';
 import { toast } from 'sonner';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import QuestionTypeCard from '../../components/vedaai/QuestionTypeCard';
+import { parseDDMMYYYYToISO } from '../../lib/timezone';
+import { useLayout } from '../../context/LayoutContext';
+
+const QUESTION_TYPE_LABELS = {
+  mcq: 'Multiple Choice Questions',
+  short: 'Short Questions',
+  long: 'Long Questions',
+};
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
+  const { refreshAssignmentCount } = useLayout();
   const fileInputRef = useRef(null);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [formData, setFormData] = useState({
-    difficulty: 'medium',
-    numQuestions: 10,
-    types: ['mcq', 'short']
-  });
-  const [batches, setBatches] = useState([]);
-  const [selectedBatches, setSelectedBatches] = useState([]);
+  const [dueDate, setDueDate] = useState('');
+  const [questionTypes, setQuestionTypes] = useState([
+    { id: 'mcq', count: 4, marks: 4 },
+    { id: 'short', count: 4, marks: 4 },
+  ]);
+  const [difficulty, setDifficulty] = useState('medium');
 
-  useEffect(() => {
-    const loadBatches = async () => {
-      try {
-        const data = await apiService.getBatches();
-        setBatches(data.data || []);
-      } catch (err) {
-        console.error('Failed to load batches', err);
-      }
-    };
-    loadBatches();
-  }, []);
+  const totalQuestions = questionTypes.reduce((s, t) => s + Number(t.count), 0);
+  const totalMarks = questionTypes.reduce((s, t) => s + Number(t.marks) * Number(t.count), 0);
+  const usedTypes = questionTypes.map((t) => t.id);
 
-  const handleBatchToggle = (batchId) => {
-    setSelectedBatches(prev =>
-      prev.includes(batchId) ? prev.filter(id => id !== batchId) : [...prev, batchId]
-    );
-  };
+  const validateFile = (f) => f?.type === 'application/pdf' || f?.type?.startsWith('image/');
 
-  const handleTypeToggle = (type) => {
-    setFormData(prev => {
-      const types = prev.types.includes(type)
-        ? prev.types.filter(t => t !== type)
-        : [...prev.types, type];
-      return { ...prev, types: types.length ? types : ['mcq'] };
-    });
+  const setFileValidated = (f) => {
+    if (validateFile(f)) {
+      setFile(f);
+      setError('');
+      return true;
+    }
+    setError('Please upload a PDF or image (JPEG, PNG).');
+    toast.error('Please upload a PDF or image (JPEG, PNG).');
+    return false;
   };
 
   const handleDragOver = (e) => {
@@ -77,85 +69,105 @@ export default function CreateTestPage() {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === 'application/pdf') {
-        setFile(droppedFile);
-        setError('');
-        toast.success('PDF loaded — ready to deploy.');
-      } else {
-        toast.error('Invalid format. PDF required.');
-        setError('Invalid format. PDF required.');
-      }
+    if (e.dataTransfer.files?.length) {
+      setFileValidated(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileSelect = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type === 'application/pdf') {
-        setFile(selectedFile);
-        setError('');
-      } else {
-        setError('Invalid format. PDF required.');
-      }
+    if (e.target.files?.length) {
+      setFileValidated(e.target.files[0]);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const updateType = (index, field, value) => {
+    setQuestionTypes((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
+  };
+
+  const removeType = (index) => {
+    setQuestionTypes((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  };
+
+  const addQuestionType = () => {
+    const next = ['mcq', 'short', 'long'].find((id) => !usedTypes.includes(id)) || 'mcq';
+    setQuestionTypes((prev) => [...prev, { id: next, count: 4, marks: 4 }]);
+  };
+
+
+
+  const goToStep2 = () => {
     if (!file) {
-      toast.error('Awaiting PDF initialization sequence.');
-      setError('Awaiting PDF initialization sequence.');
+      toast.error('Please upload a document to continue.');
+      setError('Please upload a document to continue.');
       return;
     }
+    if (file.type !== 'application/pdf') {
+      toast.error('AI generation requires a PDF. Please upload a PDF file.');
+      setError('AI generation requires a PDF. Please upload a PDF file.');
+      return;
+    }
+    if (totalQuestions < 1) {
+      toast.error('Add at least one question.');
+      return;
+    }
+    setError('');
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    const toastId = toast.loading('Generating assessment via Groq LPU...');
+  const handleGenerate = async () => {
+    const toastId = toast.loading('Generating assignment via AI...');
     setLoading(true);
     setError('');
 
+    const endTime = parseDDMMYYYYToISO(dueDate);
+
     try {
-      // Direct pass to backend queue
-      const response = await apiService.generateTest(file, formData.difficulty, formData.numQuestions);
+      const response = await apiService.generateTest(file, difficulty, totalQuestions);
       const jobId = response.jobId;
-      
       let finalQuestions = null;
 
-      // Poll until complete
       while (!finalQuestions) {
-        await new Promise(r => setTimeout(r, 2000)); // Poll every 2 seconds
+        await new Promise((r) => setTimeout(r, 2000));
         const statusRes = await apiService.getGenerationStatus(jobId);
-        
+
         if (statusRes.status === 'completed') {
           finalQuestions = statusRes.data.questions;
         } else if (statusRes.status === 'failed') {
           throw new Error(statusRes.error || 'Background AI generation failed');
         } else {
-          // Update toast with background progress
           toast.loading(`Processing... ${statusRes.progress || 0}%`, { id: toastId });
         }
       }
 
-      // Flatten AI output into a single questions array
-      const questions = finalQuestions.map(q => ({ ...q, type: q.type || 'mcq' }));
-
-      const test = await apiService.createTest({
-        title: file.name.replace('.pdf', '') || 'AI_DIAGNOSTIC_PROTOCOL',
-        difficulty: formData.difficulty,
-        duration_minutes: 30,
-        total_marks: questions.length,
-        batch_ids: selectedBatches.length > 0 ? selectedBatches : null, // Backend handles batch assignment internally now
-        content: { questions },
-        is_ai_generated: true,
-        status: selectedBatches.length > 0 ? 'active' : 'draft',
+      const questions = finalQuestions.map((q) => {
+        const preferred = questionTypes[0]?.id || 'mcq';
+        return { ...q, type: q.type || preferred };
       });
 
-      toast.success('Assessment generated successfully.', { id: toastId });
+      const test = await apiService.createTest({
+        title: file.name.replace(/\.[^.]+$/, '') || 'Assignment',
+        difficulty,
+        duration_minutes: 30,
+        total_marks: totalMarks || questions.length,
+        content: { questions },
+        is_ai_generated: true,
+        status: 'draft',
+      });
+
+      if (endTime && test?.id) {
+        try {
+          await apiService.updateTest(test.id, { end_time: endTime });
+        } catch {
+          /* non-fatal */
+        }
+      }
+
+      await refreshAssignmentCount();
+      toast.success('Assignment generated successfully.', { id: toastId });
       navigate(`/teacher/test/${test.id}`);
     } catch (err) {
-      console.error('Generation error:', err);
-      const msg = err.message || 'Engine offline. Retry sequence.';
+      const msg = err.message || 'Generation failed. Please try again.';
       toast.error(msg, { id: toastId });
       setError(msg);
     } finally {
@@ -164,289 +176,214 @@ export default function CreateTestPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto w-full">
-      {/* Processing State Overlay */}
+    <div className="max-w-3xl mx-auto w-full pb-8">
       <AnimatePresence>
         {loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center "
+            className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center"
           >
-            <div className="relative mb-8">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                className="w-32 h-32 border-[4px] border-surface border-t-brand rounded-full shadow-soft"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <BrainCircuit className="text-brand animate-pulse" size={40} />
-              </div>
-            </div>
-
-            <motion.h2
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-2xl sm:text-4xl font-display font-extrabold tracking-tight mb-4"
-            >
-              Architecting Assessment...
-            </motion.h2>
-
-            <div className="max-w-md space-y-3">
-              <p className="text-text-muted font-sans font-medium">
-                Our AI is analyzing your syllabus framework to construct high-fidelity questions.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-semibold text-brand uppercase tracking-wider mt-6">
-                <span className="flex items-center gap-1"><Dna size={14} /> Reading</span>
-                <span className="w-1 h-1 bg-brand rounded-full hidden sm:block"></span>
-                <span className="flex items-center gap-1"><Sparkles size={14} /> Generating</span>
-                <span className="w-1 h-1 bg-brand rounded-full hidden sm:block"></span>
-                <span className="flex items-center gap-1"><Zap size={14} /> Finalizing</span>
-              </div>
-            </div>
+            <div className="w-16 h-16 border-2 border-border border-t-primary rounded-full animate-spin mb-6" />
+            <BrainCircuit className="text-primary mb-4 mx-auto" size={32} />
+            <h2 className="text-xl font-bold text-primary mb-2">Generating your assignment...</h2>
+            <p className="text-sm text-text-muted max-w-sm">
+              Our AI is analyzing your document to construct questions.
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+      <div className="flex items-center gap-4 mb-4">
+        <button
+          type="button"
+          onClick={() => (step === 1 ? navigate(-1) : setStep(1))}
+          className="w-10 h-10 rounded-full bg-white border border-border flex items-center justify-center shadow-soft shrink-0"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <h1 className="flex-1 text-center lg:text-left text-lg lg:text-xl font-bold text-primary">
+          Create Assignment
+        </h1>
+      </div>
 
-        {/* Left Side: Form Controls */}
-        <div className="lg:col-span-4 order-2 lg:order-1">
-          <Card p="lg" className="sticky top-28 bg-surface">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-brand/10 text-brand rounded-lg">
-                <Settings2 size={20} />
-              </div>
-              <h2 className="text-2xl font-display font-extrabold tracking-tight">Protocol Configuration</h2>
-            </div>
+      <div className="h-1.5 rounded-full bg-surface-muted mb-6 overflow-hidden flex gap-1">
+        <div className={`h-full flex-1 rounded-full transition-colors ${step >= 1 ? 'bg-primary' : 'bg-border'}`} />
+        <div className={`h-full flex-1 rounded-full transition-colors ${step >= 2 ? 'bg-primary' : 'bg-border'}`} />
+      </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Difficulty */}
-              <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Cognitive Complexity</label>
-                <div className="grid grid-cols-3 gap-2 p-1.5 bg-background rounded-lg border border-border">
-                  {['easy', 'medium', 'hard'].map((level) => (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, difficulty: level })}
-                      className={`py-2.5 rounded-md text-sm font-semibold capitalize transition-all ${formData.difficulty === level
-                          ? 'bg-brand/10 text-brand border border-brand/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                          : 'text-text-muted hover:text-text hover:bg-surface'
-                        }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {step === 1 ? (
+        <div>
+          <div className="bg-surface-muted rounded-veda-xl p-4 sm:p-6">
+            <div className="bg-white rounded-veda-xl p-6 sm:p-8 shadow-soft">
+              <h2 className="text-lg font-bold text-primary mb-1">Assignment Details</h2>
+              <p className="text-sm text-text-muted mb-6">Basic information about your assignment</p>
 
-              {/* Question Count */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider">Assessment Volume</label>
-                  <span className="text-sm font-bold text-brand bg-brand/10 px-3 py-1 rounded-md">{formData.numQuestions}</span>
-                </div>
-                <input
-                  type="range" min="5" max="30" step="5"
-                  value={formData.numQuestions}
-                  onChange={(e) => setFormData({ ...formData, numQuestions: e.target.value })}
-                  className="w-full h-2 bg-background border border-border rounded-lg appearance-none cursor-pointer accent-brand"
-                />
-                <div className="flex justify-between mt-2 text-xs font-medium text-text-muted">
-                  <span>5</span>
-                  <span>15</span>
-                  <span>30</span>
-                </div>
-              </div>
-
-              {/* Question Types */}
-              <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Question Types</label>
-                <div className="space-y-3">
-                  {[
-                    { id: 'mcq', label: 'Multiple Choice', desc: 'Standard objective questions' },
-                    { id: 'short', label: 'Short Answer', desc: 'Brief written responses' },
-                    { id: 'long', label: 'Long Answer', desc: 'Detailed essay questions' }
-                  ].map((type) => (
-                    <button
-                      key={type.id}
-                      type="button"
-                      onClick={() => handleTypeToggle(type.id)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left ${formData.types.includes(type.id)
-                          ? 'bg-brand/10 border-brand/30 shadow-sm'
-                          : 'bg-background border-border hover:border-text-muted'
-                        }`}
-                    >
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${formData.types.includes(type.id) ? 'bg-brand text-background' : 'bg-surface text-text-muted'
-                        }`}>
-                        {type.id === 'mcq' ? <CheckCircle2 size={18} /> : <FileText size={18} />}
-                      </div>
-                      <div>
-                        <div className={`text-sm font-display font-bold ${formData.types.includes(type.id) ? 'text-brand' : 'text-text'}`}>{type.label}</div>
-                        <div className="text-xs text-text-muted">{type.desc}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Assign to Batches */}
-              <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Designate Academic Sections</label>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {batches.length === 0 ? (
-                    <p className="text-sm text-text-muted font-sans italic">No classes found.</p>
-                  ) : (
-                    batches.map((batch) => (
-                      <button
-                        key={batch.id}
-                        type="button"
-                        onClick={() => handleBatchToggle(batch.id)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${selectedBatches.includes(batch.id)
-                            ? 'bg-zinc-900/10 border-zinc-900/30'
-                            : 'bg-background border-border hover:border-text-muted'
-                          }`}
-                      >
-                        <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${selectedBatches.includes(batch.id) ? 'bg-zinc-900 border-zinc-900 text-white' : 'border-border'
-                          }`}>
-                          {selectedBatches.includes(batch.id) && <CheckCircle2 size={12} />}
-                        </div>
-                        <span className={`text-sm font-display font-bold ${selectedBatches.includes(batch.id) ? 'text-zinc-900' : 'text-text'}`}>{batch.name}</span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={!file || loading}
-                variant="primary"
-                className="w-full py-5 text-base shadow-indigo-glow"
-              >
-                {loading ? 'Synthesizing...' : 'Initialize Assessment'}
-                {!loading && <ArrowRight size={20} className="ml-2" />}
-              </Button>
-            </form>
-          </Card>
-        </div>
-
-        {/* Right Side: Upload Hero */}
-        <div className="lg:col-span-8 order-1 lg:order-2">
-          <div className="h-full flex flex-col">
-            <div className="mb-10">
-              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-extrabold leading-tight mb-4 tracking-tight">
-                Assessment <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-indigo-400">Architect</span>
-              </h1>
-              <p className="text-lg text-text-muted font-sans max-w-xl">
-                Ingest your source material via PDF. Our AI engine will analyze the curriculum to construct a comprehensive evaluation protocol.
-              </p>
-            </div>
-
-            <Card
-              p="0"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`flex-1 min-h-[400px] border-2 border-dashed transition-all flex flex-col items-center justify-center p-6 sm:p-12 text-center group ${isDragging
-                  ? 'bg-brand/5 border-brand ring-4 ring-brand/10'
-                  : file
-                    ? 'bg-emerald-500/5 border-emerald-500/30'
-                    : 'bg-surface border-border hover:border-text-muted hover:bg-background'
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-veda p-8 text-center transition-colors ${
+                  isDragging ? 'border-primary bg-surface-muted' : 'border-border bg-surface-muted/50'
                 }`}
-            >
-              {file ? (
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="space-y-6 w-full max-w-md mx-auto"
-                >
-                  <div className="w-24 h-24 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                    <FileIcon size={40} />
+              >
+                {file ? (
+                  <div className="space-y-4">
+                    <div className="w-14 h-14 bg-white rounded-xl border border-border flex items-center justify-center mx-auto shadow-soft">
+                      <FileIcon size={28} className="text-primary" />
+                    </div>
+                    <p className="font-semibold text-primary truncate">{file.name}</p>
+                    <Button type="button" variant="white" size="sm" onClick={() => setFile(null)}>
+                      Remove
+                    </Button>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-display font-bold text-text truncate mx-auto">{file.name}</h3>
-                    <p className="text-emerald-500 font-semibold text-xs uppercase tracking-wider mt-2 flex items-center justify-center gap-1">
-                      <ShieldCheck size={16} /> File Validated
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => setFile(null)}
-                    variant="danger"
-                    className="mt-4"
-                  >
-                    Remove File
-                  </Button>
-                </motion.div>
-              ) : (
-                <>
-                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-8 transition-all ${isDragging ? 'bg-brand text-background scale-110 shadow-soft' : 'bg-background border border-border text-text-muted shadow-sm group-hover:text-brand'
-                    }`}>
-                    <UploadCloud size={36} />
-                  </div>
-                  <h3 className="text-2xl font-display font-extrabold mb-3">Ingest Source Material</h3>
-                  <p className="text-text-muted font-sans mb-8 max-w-xs">
-                    Drop your PDF study material here to get started.
-                  </p>
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    variant="outline"
-                    className="px-xl py-4"
-                  >
-                    Browse Files
-                  </Button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept=".pdf"
-                    onChange={handleFileSelect}
+                ) : (
+                  <>
+                    <div className="w-14 h-14 bg-white rounded-xl border border-border flex items-center justify-center mx-auto mb-4 shadow-soft">
+                      <UploadCloud size={28} className="text-text-muted" />
+                    </div>
+                    <p className="font-semibold text-primary mb-1">Choose a file or drag & drop it here</p>
+                    <p className="text-xs text-text-subtle mb-4">JPEG, PNG, upto 10MB</p>
+                    <Button type="button" variant="white" size="md" onClick={() => fileInputRef.current?.click()}>
+                      Browse Files
+                    </Button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept=".pdf,image/jpeg,image/png"
+                      onChange={handleFileSelect}
+                    />
+                  </>
+                )}
+              </div>
+              <p className="text-xs text-text-subtle text-center mt-3 mb-6">
+                Upload images of your preferred document/ image
+              </p>
+
+              <label className="block text-sm font-bold text-primary mb-2">Due Date</label>
+              <div className="relative mb-6">
+                <input
+                  type="text"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  placeholder="DD-MM-YYYY"
+                  className="w-full bg-surface-muted border border-border rounded-xl py-3 px-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+                <Calendar size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+              </div>
+
+              <p className="text-sm font-bold text-primary mb-3">Question Type</p>
+              <div className="space-y-4 mb-4">
+                {questionTypes.map((qt, index) => (
+                  <QuestionTypeCard
+                    key={`${qt.id}-${index}`}
+                    item={qt}
+                    index={index}
+                    usedTypes={usedTypes.filter((_, i) => i !== index)}
+                    onChange={updateType}
+                    onRemove={removeType}
+                    canRemove={questionTypes.length > 1}
                   />
-                </>
-              )}
-            </Card>
+                ))}
+              </div>
 
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mt-6 p-4 bg-danger/10 border border-danger/20 rounded-xl flex items-center gap-3 text-danger"
-                >
-                  <AlertCircle size={18} />
-                  <span className="text-sm font-semibold">{error}</span>
-                  <button onClick={() => setError('')} className="ml-auto hover:bg-danger/20 p-1 rounded-md">
-                    <X size={16} />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <button
+                type="button"
+                onClick={addQuestionType}
+                className="flex items-center gap-2 text-sm font-bold text-primary mb-8"
+              >
+                <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
+                  <Plus size={18} />
+                </span>
+                Add Question Type
+              </button>
 
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                { icon: <Zap size={18} />, title: 'Fast', desc: 'Ready in seconds' },
-                { icon: <ShieldCheck size={18} />, title: 'Accurate', desc: 'Based on your text' },
-                { icon: <BarChart3 size={18} />, title: 'Diverse', desc: 'Various question types' }
-              ].map((feature, i) => (
-                <div key={i} className="flex gap-4 items-center bg-surface border border-border p-4 rounded-xl">
-                  <div className="w-10 h-10 shrink-0 rounded-lg bg-background flex items-center justify-center text-text-muted">
-                    {feature.icon}
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-text">{feature.title}</div>
-                    <div className="text-sm text-text-muted leading-tight mt-0.5">{feature.desc}</div>
-                  </div>
-                </div>
-              ))}
+              <div className="text-right text-sm font-semibold text-primary space-y-1 border-t border-border pt-4">
+                <p>Total Questions : {totalQuestions}</p>
+                <p>Total Marks : {totalMarks}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-      </div>
+          {error && <p className="mt-4 text-sm text-danger text-center">{error}</p>}
+
+          <div className="flex gap-3 mt-6">
+            <Button type="button" variant="white" size="lg" className="flex-1" onClick={() => navigate('/teacher/dashboard')}>
+              <ArrowLeft size={18} className="mr-2" />
+              Previous
+            </Button>
+            <Button type="button" variant="primary" size="lg" className="flex-1" onClick={goToStep2} disabled={!file}>
+              Next
+              <ArrowRight size={18} className="ml-2" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="bg-surface-muted rounded-veda-xl p-4 sm:p-6">
+            <div className="bg-white rounded-veda-xl p-6 sm:p-8 shadow-soft">
+              <h2 className="text-lg font-bold text-primary mb-1">Review & Generate</h2>
+              <p className="text-sm text-text-muted mb-6">Confirm details before AI generates your assignment.</p>
+
+              <dl className="space-y-4 text-sm mb-6">
+                <div className="flex justify-between border-b border-border pb-3">
+                  <dt className="text-text-muted">Document</dt>
+                  <dd className="font-semibold text-primary truncate max-w-[60%]">{file?.name}</dd>
+                </div>
+                <div className="flex justify-between border-b border-border pb-3">
+                  <dt className="text-text-muted">Due Date</dt>
+                  <dd className="font-semibold text-primary">{dueDate || '—'}</dd>
+                </div>
+                <div className="flex justify-between border-b border-border pb-3">
+                  <dt className="text-text-muted">Difficulty</dt>
+                  <dd className="font-semibold text-primary capitalize">
+                    <select
+                      value={difficulty}
+                      onChange={(e) => setDifficulty(e.target.value)}
+                      className="bg-surface-muted border border-border rounded-lg px-3 py-1.5 text-sm capitalize"
+                    >
+                      <option value="easy">easy</option>
+                      <option value="medium">medium</option>
+                      <option value="hard">hard</option>
+                    </select>
+                  </dd>
+                </div>
+                {questionTypes.map((qt) => (
+                  <div key={qt.id} className="flex justify-between text-text-muted">
+                    <span>{QUESTION_TYPE_LABELS[qt.id]}</span>
+                    <span className="text-primary font-medium">
+                      {qt.count} × {qt.marks} marks
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between font-bold text-primary pt-2">
+                  <span>Total</span>
+                  <span>
+                    {totalQuestions} questions · {totalMarks} marks
+                  </span>
+                </div>
+              </dl>
+
+
+            </div>
+          </div>
+
+          {error && <p className="mt-4 text-sm text-danger text-center">{error}</p>}
+
+          <div className="flex gap-3 mt-6">
+            <Button type="button" variant="white" size="lg" className="flex-1" onClick={() => setStep(1)} disabled={loading}>
+              <ArrowLeft size={18} className="mr-2" />
+              Previous
+            </Button>
+            <Button type="button" variant="primary" size="lg" className="flex-1" onClick={handleGenerate} disabled={loading}>
+              Generate Assignment
+              <ArrowRight size={18} className="ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

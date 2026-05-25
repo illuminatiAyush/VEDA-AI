@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║  TEST ROUTES — Assessment Lifecycle Management                  ║
+ * ║  TEST ROUTES — Assessment Lifecycle Router                      ║
  * ║  Hardened: Zod Validation on all inputs                         ║
  * ╚══════════════════════════════════════════════════════════════════╝
  */
@@ -8,9 +8,59 @@
 const TestService = require('../services/testService');
 const { authenticate } = require('../utils/authMiddleware');
 const { validateBody, createTestSchema, testStatusSchema } = require('../utils/validators');
+const Test = require('../models/Test');
 
 async function testRoutes(fastify, options) {
   fastify.addHook('preHandler', authenticate);
+
+  /**
+   * GET /api/tests
+   * Lists all tests created by the teacher.
+   */
+  fastify.get('/tests', async (request, reply) => {
+    const userId = request.user.id;
+
+    try {
+      const tests = await Test.find({ created_by: userId }).sort({ createdAt: -1 });
+
+      const formatted = tests.map(t => t.toObject({ virtuals: true }));
+
+      return reply.send({ success: true, data: formatted });
+    } catch (error) {
+      request.log.error({ err: error }, 'Failed to fetch tests');
+      return reply.status(500).send({ success: false, error: 'Failed to fetch assessments' });
+    }
+  });
+
+  /**
+   * GET /api/tests/:id
+   * Fetches test details.
+   */
+  fastify.get('/tests/:id', async (request, reply) => {
+    const { id } = request.params;
+    const userId = request.user.id;
+
+    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+    if (!objectIdRegex.test(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid test ID format' });
+    }
+
+    try {
+      const test = await Test.findById(id);
+      if (!test) {
+        return reply.status(404).send({ success: false, error: 'Test not found' });
+      }
+
+      if (test.created_by.toString() !== userId) {
+        return reply.status(403).send({ success: false, error: 'Unauthorized to view this test' });
+      }
+
+      return reply.send({ success: true, data: test.toObject({ virtuals: true }) });
+    } catch (error) {
+      request.log.error({ err: error, id }, 'Failed to fetch test details');
+      return reply.status(500).send({ success: false, error: error.message || 'Failed to fetch test details' });
+    }
+  });
 
   /**
    * POST /api/create-test
@@ -27,11 +77,6 @@ async function testRoutes(fastify, options) {
         request.log.info({ userId, title: data.title }, 'Creating new assessment');
         
         const test = await TestService.createTest(token, userId, data);
-
-        // If batch_ids are provided, assign the test to those batches
-        if (data.batch_ids && Array.isArray(data.batch_ids) && data.batch_ids.length > 0) {
-          await TestService.assignTestToBatch(token, test.id, data.batch_ids);
-        }
 
         return reply.send({
           success: true,
@@ -60,9 +105,9 @@ async function testRoutes(fastify, options) {
         const token = request.headers.authorization.replace('Bearer ', '');
         const userId = request.user.id;
 
-        // Validate UUID format for param
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(id)) {
+        // Validate MongoDB ObjectId format for param
+        const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+        if (!objectIdRegex.test(id)) {
           return reply.status(400).send({ success: false, error: 'Invalid test ID format' });
         }
 
@@ -83,6 +128,24 @@ async function testRoutes(fastify, options) {
       }
     },
   });
+
+  /**
+   * GET /api/dashboard/teacher/stats
+   * Simplified stats for Teacher Dashboard.
+   */
+  fastify.get('/dashboard/teacher/stats', async (request, reply) => {
+    const userId = request.user.id;
+
+    try {
+      const testsCount = await Test.countDocuments({ created_by: userId });
+      
+      return reply.send({ success: true, data: { totalAssessments: testsCount } });
+    } catch (error) {
+      request.log.error({ err: error }, 'Failed to load teacher stats');
+      return reply.status(500).send({ success: false, error: 'Failed to aggregate dashboard analytics' });
+    }
+  });
+
 }
 
 module.exports = testRoutes;
