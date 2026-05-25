@@ -93,8 +93,51 @@ async function testRoutes(fastify, options) {
   });
 
   /**
+   * PATCH /api/tests/:id
+   * Partial update of test fields (duration, scheduling, status, etc.)
+   */
+  fastify.patch('/tests/:id', async (request, reply) => {
+    const { id } = request.params;
+    const userId = request.user.id;
+
+    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+    if (!objectIdRegex.test(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid test ID format' });
+    }
+
+    try {
+      const allowedFields = ['title', 'instructions', 'difficulty', 'duration_minutes', 'start_time', 'end_time', 'status'];
+      const updates = {};
+      for (const key of allowedFields) {
+        if (request.body[key] !== undefined) {
+          updates[key] = request.body[key];
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return reply.status(400).send({ success: false, error: 'No valid fields to update' });
+      }
+
+      const test = await Test.findOneAndUpdate(
+        { _id: id, created_by: userId },
+        updates,
+        { new: true }
+      );
+
+      if (!test) {
+        return reply.status(404).send({ success: false, error: 'Test not found or unauthorized' });
+      }
+
+      return reply.send({ success: true, data: test.toObject({ virtuals: true }) });
+    } catch (error) {
+      request.log.error({ err: error, id }, 'Failed to update test');
+      return reply.status(500).send({ success: false, error: error.message || 'Failed to update test' });
+    }
+  });
+
+  /**
    * POST /api/test-status/:id
-   * Manages test lifecycle: publish, start, end
+   * Manages test lifecycle: publish, start, end, delete
    */
   fastify.post('/test-status/:id', {
     preHandler: [validateBody(testStatusSchema)],

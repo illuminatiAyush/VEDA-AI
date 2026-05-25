@@ -45,7 +45,7 @@ const createTestSchema = z.object({
  * POST /api/test-status/:id
  */
 const testStatusSchema = z.object({
-  action: z.enum(['publish', 'start', 'end']),
+  action: z.enum(['publish', 'start', 'end', 'delete']),
 });
 
 // ─── AI OUTPUT SCHEMAS ────────────────────────────────────────────

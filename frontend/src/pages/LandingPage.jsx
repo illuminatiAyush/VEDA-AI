@@ -47,28 +47,28 @@ function CountUp({ end, suffix = '', prefix = '', duration = 1.5 }) {
 const STATS = [
   { num: 2, prefix: '<', suffix: 's', label: 'Generation Time' },
   { num: 50, suffix: '+', label: 'Questions/Test' },
-  { num: 100, suffix: '%', label: 'Proctored' },
-  { num: 0, text: 'AI', label: 'Feedback Engine' },
+  { num: 3, suffix: '', label: 'Question Types' },
+  { num: 0, text: 'AI', label: 'Powered Engine' },
 ];
 
 const FEATURES = [
-  { icon: Zap, title: 'Blazing Fast AI', desc: 'Generate 50 questions in under 2 seconds using Groq LPU inference. Zero wait time.', tag: 'CORE', span: 'md:col-span-5' },
-  { icon: ShieldCheck, title: 'Bank-Grade Security', desc: 'JWT-based session authentication isolates student & teacher data. Zero cross-access possible.', tag: 'SECURITY', span: 'md:col-span-7' },
-  { icon: FileText, title: 'Fair Evaluation', desc: 'AI scores against your rubric — eliminating bias and standardizing results.', tag: 'AI', span: 'md:col-span-7' },
-  { icon: BarChart3, title: 'Rich Analytics', desc: 'Per-question breakdowns, violation tracking, and performance insights.', tag: 'ANALYTICS', span: 'md:col-span-5' },
+  { icon: Zap, title: 'AI Question Generation', desc: 'Upload a PDF and let AI generate structured question papers with MCQs, short answers, and long answers — categorized by difficulty.', tag: 'CORE', span: 'md:col-span-5' },
+  { icon: FileText, title: 'PDF Upload & Parsing', desc: 'Upload any document as a PDF. Our backend extracts and chunks text using RAG foundations, with OCR fallback for scanned documents.', tag: 'UPLOAD', span: 'md:col-span-7' },
+  { icon: ShieldCheck, title: 'Structured Output', desc: 'View generated question papers in a clean, exam-style format with sections, difficulty tags, marks, and answer keys. Download as PDF.', tag: 'OUTPUT', span: 'md:col-span-7' },
+  { icon: BarChart3, title: 'Background Processing', desc: 'AI generation runs as background jobs via a queue system. Real-time progress updates keep you informed while questions are being created.', tag: 'SYSTEM', span: 'md:col-span-5' },
 ];
 
 const TESTIMONIALS = [
-  { quote: "We cut assessment time by 90%. VedaAI completely automated our workflow.", author: "Dr. Amit Desai", role: "Center Director, VPPPCOE" },
-  { quote: "The AI evaluation eliminated grading bias. Students finally trust the process.", author: "Prof. Neha Sharma", role: "Head of Examinations" },
-  { quote: "Setup took seconds. The analytics give us unprecedented insights.", author: "Rajiv V.", role: "Senior IT Administrator" },
+  { quote: "I created an entire question paper from a 40-page PDF in under 10 seconds. VedaAI is a game changer.", author: "Dr. Amit Desai", role: "Professor, Computer Science" },
+  { quote: "The structured output with sections and difficulty tags looks exactly like a real exam paper. My students couldn't tell the difference.", author: "Prof. Neha Sharma", role: "Head of Examinations" },
+  { quote: "Upload, configure, generate. Three steps and my weekly quiz is ready. This saves me hours every week.", author: "Rajiv V.", role: "High School Teacher" },
 ];
 
 const FAQS = [
-  { q: "How does AI ensure fair scoring?", a: "VedaAI evaluates answers strictly against your predefined rubrics using advanced LLMs, eliminating subjective bias." },
-  { q: "Can we integrate with our LMS?", a: "Yes. VedaAI has an API-first architecture for seamless integration with institutional databases and SSO providers." },
-  { q: "How secure is assessment data?", a: "We use cryptographically signed JWT sessions and secure MongoDB collection boundaries for complete data isolation. Instructor and student data are fully separated." },
-  { q: "Can it handle large batches?", a: "Absolutely. The robust Express-Fastify and MongoDB architecture handles thousands of concurrent test attempts with zero lag." },
+  { q: "What document formats are supported?", a: "VedaAI accepts PDF files. Our parser extracts text from digital PDFs, and for scanned documents, we use Gemini's multimodal OCR to read the content visually." },
+  { q: "What types of questions can it generate?", a: "VedaAI generates Multiple Choice Questions (MCQs with 4 options), Short Answer Questions, and Long Answer Questions. You can configure the count and marks for each type." },
+  { q: "How does the AI generation work?", a: "Your PDF is uploaded to our Fastify backend, text is extracted and chunked (RAG foundation), then sent to Groq or Gemini LLMs with structured prompts. Questions are validated with Zod schemas before being returned." },
+  { q: "Can I download the generated question paper?", a: "Yes! The output page renders a structured exam-style document with student info fields, sections, difficulty tags, and an answer key. You can download it as a PDF directly from the browser." },
 ];
 
 function FAQItem({ q, a, index }) {
@@ -200,17 +200,17 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-text-muted text-xs font-semibold mb-8 border border-border shadow-soft"
             >
               <Sparkles size={14} className="text-primary" />
-              Next-Gen Assessment Platform
+              AI Assessment Creator
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.08] tracking-tight mb-6 text-primary">
-              The future of assessments
+              Create AI-powered
               <br className="hidden sm:block" />
-              is already here.
+              question papers instantly.
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-lg md:text-xl text-text-muted leading-relaxed mb-10 max-w-2xl">
-              Create intelligent tests in seconds, grade with precision, and unlock insights that transform education.
+              Upload a PDF, configure question types, and let AI generate structured assessments with sections, difficulty levels, and answer keys — all in seconds.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4">
@@ -251,18 +251,18 @@ export default function LandingPage() {
         <Container>
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
             <div className="max-w-3xl mx-auto text-center mb-16">
-              <p className="text-xs font-semibold text-text-subtle uppercase tracking-[0.2em] mb-4">Our Story</p>
-              <h2 className="text-4xl md:text-5xl font-bold text-primary mb-6">The Legend of VedaAI</h2>
+              <p className="text-xs font-semibold text-text-subtle uppercase tracking-[0.2em] mb-4">How It Works</p>
+              <h2 className="text-4xl md:text-5xl font-bold text-primary mb-6">From PDF to Question Paper</h2>
               <p className="text-lg text-text-muted leading-relaxed">
-                Born from a simple frustration — and built into something extraordinary.
+                Three simple steps to generate a complete, structured assessment.
               </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {[
-                { num: '01', title: 'The Problem', desc: 'Teachers spent countless hours manually creating assessments, grading papers, and compiling results. Students waited days for feedback. The system was broken.' },
-                { num: '02', title: 'The Spark', desc: 'What if AI could generate an entire exam in seconds? What if grading was instant, unbiased, and perfectly consistent? That question changed everything.' },
-                { num: '03', title: 'The Revolution', desc: 'VedaAI was born — a platform where assessments create themselves, answers grade themselves, and insights reveal themselves. The future, delivered today.' },
+                { num: '01', title: 'Upload Your Document', desc: 'Upload any PDF — textbooks, notes, or study material. Our backend extracts text and chunks it intelligently. Scanned PDFs are handled via multimodal OCR automatically.' },
+                { num: '02', title: 'Configure & Generate', desc: 'Choose question types (MCQ, short, long), set difficulty, and specify the number of questions. AI processes your content through a background job queue and generates structured questions.' },
+                { num: '03', title: 'View & Download', desc: 'See your question paper rendered in a clean, exam-style format with student info fields, sections, difficulty tags, marks, and an answer key. Download as PDF with one click.' },
               ].map((step, i) => (
                 <motion.div
                   key={step.num}
@@ -281,7 +281,7 @@ export default function LandingPage() {
 
             <div className="max-w-2xl mx-auto text-center mt-16">
               <p className="text-xl md:text-2xl text-text-muted leading-relaxed">
-                &ldquo;We didn&apos;t just build a tool — we reimagined what assessment means for a generation that deserves better.&rdquo;
+                &ldquo;Built for educators who want to spend less time creating tests and more time teaching.&rdquo;
               </p>
               <p className="mt-6 text-sm font-semibold text-text-subtle">— The VedaAI Team</p>
             </div>
@@ -422,9 +422,9 @@ export default function LandingPage() {
             className="relative rounded-veda-xl bg-primary p-12 md:p-16 text-center overflow-hidden"
           >
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">Ready to begin?</h2>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">Ready to create?</h2>
               <p className="text-white/70 max-w-lg mx-auto mb-8 text-base">
-                Deploy your first AI assessment in under 60 seconds. No credit card required.
+                Generate your first AI question paper in under 60 seconds. Upload a PDF and go.
               </p>
               <Link
                 to="/login"
@@ -484,7 +484,7 @@ export default function LandingPage() {
                 <span className="font-bold">VedaAI</span>
               </div>
               <p className="text-xs text-white/60 leading-relaxed max-w-xs">
-                Intelligent assessment infrastructure for modern educational institutions.
+                AI-powered assessment creator for modern educators. Upload, generate, download.
               </p>
               <div className="flex gap-3 mt-4">
                 {[Twitter, Linkedin, Instagram, Mail].map((Icon, i) => (

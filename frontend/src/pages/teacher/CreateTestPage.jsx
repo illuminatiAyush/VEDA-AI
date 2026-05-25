@@ -165,7 +165,7 @@ export default function CreateTestPage() {
 
       await refreshAssignmentCount();
       toast.success('Assignment generated successfully.', { id: toastId });
-      navigate(`/teacher/test/${test.id}`);
+      navigate(`/teacher/test/${test.id || test._id}`);
     } catch (err) {
       const msg = err.message || 'Generation failed. Please try again.';
       toast.error(msg, { id: toastId });
@@ -244,7 +244,7 @@ export default function CreateTestPage() {
                       <UploadCloud size={28} className="text-text-muted" />
                     </div>
                     <p className="font-semibold text-primary mb-1">Choose a file or drag & drop it here</p>
-                    <p className="text-xs text-text-subtle mb-4">JPEG, PNG, upto 10MB</p>
+                    <p className="text-xs text-text-subtle mb-4">PDF files, up to 20MB</p>
                     <Button type="button" variant="white" size="md" onClick={() => fileInputRef.current?.click()}>
                       Browse Files
                     </Button>

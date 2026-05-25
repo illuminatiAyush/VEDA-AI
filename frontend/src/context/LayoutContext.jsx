@@ -5,11 +5,11 @@ import { apiService } from '../lib/api';
 const LayoutContext = createContext(null);
 
 export function LayoutProvider({ children }) {
-  const { role, user } = useAuth();
+  const { user } = useAuth();
   const [assignmentCount, setAssignmentCount] = useState(0);
 
   const refreshAssignmentCount = useCallback(async () => {
-    if (role !== 'teacher' || !user) {
+    if (!user) {
       setAssignmentCount(0);
       return;
     }
@@ -19,7 +19,7 @@ export function LayoutProvider({ children }) {
     } catch {
       setAssignmentCount(0);
     }
-  }, [role, user]);
+  }, [user]);
 
   useEffect(() => {
     refreshAssignmentCount();

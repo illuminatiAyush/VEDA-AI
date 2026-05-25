@@ -93,9 +93,9 @@ export default function TestViewerPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const firstName =
-    user?.user_metadata?.full_name?.split(' ')[0] ||
+    user?.name?.split(' ')[0] ||
     user?.email?.split('@')[0]?.replace(/[._]/g, ' ') ||
-    'Lakshya';
+    'Teacher';
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

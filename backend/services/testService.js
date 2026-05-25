@@ -60,6 +60,13 @@ class TestService {
       } else if (action === 'end') {
         updates.status = 'ended';
         updates.end_time = new Date();
+      } else if (action === 'delete') {
+        const deleted = await Test.findOneAndDelete({ _id: testId, created_by: userId });
+        if (!deleted) {
+          throw new Error('Test not found or user unauthorized to delete');
+        }
+        logger.info({ testId }, 'Test deleted successfully');
+        return deleted;
       } else {
         throw new Error('Invalid status action');
       }

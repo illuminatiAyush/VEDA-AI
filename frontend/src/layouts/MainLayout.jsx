@@ -33,7 +33,7 @@ function LayoutShell() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const displayName =
-    user?.user_metadata?.full_name ||
+    user?.name ||
     user?.email?.split('@')[0]?.replace(/[._]/g, ' ') ||
     'Teacher';
 
