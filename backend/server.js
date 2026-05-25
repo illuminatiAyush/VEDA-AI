@@ -6,23 +6,30 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
-require('dotenv').config();
-const fastify = require('fastify');
-const cors = require('@fastify/cors');
-const multipart = require('@fastify/multipart');
-const rateLimit = require('@fastify/rate-limit');
-const logger = require('./utils/logger');
-const connectDB = require('./config/db');
+console.log("🚀 Starting Evalix Backend bootstrap sequence...");
 
-const app = fastify({
-  logger: logger.pinoConfig,
-  bodyLimit: 10 * 1024 * 1024, // 10MB — handles large JSON payloads
-});
+let app;
 
-// ─── Plugins ─────────────────────────────────────────────────────
 async function start() {
-  // Connect to MongoDB
-  await connectDB();
+  try {
+    console.log("📦 Loading dependencies...");
+    require('dotenv').config();
+    const fastify = require('fastify');
+    const cors = require('@fastify/cors');
+    const multipart = require('@fastify/multipart');
+    const rateLimit = require('@fastify/rate-limit');
+    const logger = require('./utils/logger');
+    const connectDB = require('./config/db');
+
+    console.log("🔌 Connecting to Database...");
+    await connectDB();
+
+    console.log("⚡ Creating Fastify instance...");
+    app = fastify({
+      logger: logger.pinoConfig,
+      bodyLimit: 10 * 1024 * 1024, // 10MB — handles large JSON payloads
+    });
+
 
   // CORS — allow frontend origin
   await app.register(cors, {
@@ -99,7 +106,15 @@ async function start() {
     await app.listen({ port, host });
     console.log(`\n  ⚡ Evalix Backend v1.1.0 (Hardened) running on http://localhost:${port}\n`);
   } catch (err) {
-    app.log.error(err);
+    if (app && app.log) {
+      app.log.error(err);
+    } else {
+      console.error(err);
+    }
+    process.exit(1);
+  }
+  } catch (fatalErr) {
+    console.error("❌ FATAL BOOTSTRAP EXCEPTION ON SERVER:", fatalErr);
     process.exit(1);
   }
 }
