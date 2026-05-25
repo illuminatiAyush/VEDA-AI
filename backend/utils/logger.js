@@ -5,15 +5,19 @@
 const pino = require('pino');
 
 // Pino config for Fastify
+const isProduction = process.env.NODE_ENV === 'production';
+
 const pinoConfig = {
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss',
-      ignore: 'pid,hostname',
-    },
-  },
+  transport: isProduction
+    ? undefined
+    : {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'HH:MM:ss',
+          ignore: 'pid,hostname',
+        },
+      },
   level: process.env.LOG_LEVEL || 'info',
 };
 
