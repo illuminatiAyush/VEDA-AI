@@ -101,9 +101,10 @@ export default function CreateTestPage() {
       setError('Please upload a document to continue.');
       return;
     }
-    if (file.type !== 'application/pdf') {
-      toast.error('AI generation requires a PDF. Please upload a PDF file.');
-      setError('AI generation requires a PDF. Please upload a PDF file.');
+    const isValid = file.type === 'application/pdf' || file.type?.startsWith('image/');
+    if (!isValid) {
+      toast.error('AI generation requires a PDF or Image (PNG, JPEG).');
+      setError('AI generation requires a PDF or Image (PNG, JPEG).');
       return;
     }
     if (totalQuestions < 1) {
@@ -120,7 +121,12 @@ export default function CreateTestPage() {
     setLoading(true);
     setError('');
 
-    const endTime = parseDDMMYYYYToISO(dueDate);
+    let formattedDueDate = dueDate;
+    if (dueDate && dueDate.includes('-') && dueDate.split('-')[0].length === 4) {
+      const [y, m, d] = dueDate.split('-');
+      formattedDueDate = `${d}-${m}-${y}`;
+    }
+    const endTime = parseDDMMYYYYToISO(formattedDueDate);
 
     try {
       const response = await apiService.generateTest(file, difficulty, totalQuestions);
@@ -224,7 +230,7 @@ export default function CreateTestPage() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-veda p-8 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-veda p-6 sm:p-8 text-center transition-colors ${
                   isDragging ? 'border-primary bg-surface-muted' : 'border-border bg-surface-muted/50'
                 }`}
               >
@@ -233,7 +239,7 @@ export default function CreateTestPage() {
                     <div className="w-14 h-14 bg-white rounded-xl border border-border flex items-center justify-center mx-auto shadow-soft">
                       <FileIcon size={28} className="text-primary" />
                     </div>
-                    <p className="font-semibold text-primary truncate">{file.name}</p>
+                    <p className="font-semibold text-primary truncate px-2">{file.name}</p>
                     <Button type="button" variant="white" size="sm" onClick={() => setFile(null)}>
                       Remove
                     </Button>
@@ -244,7 +250,7 @@ export default function CreateTestPage() {
                       <UploadCloud size={28} className="text-text-muted" />
                     </div>
                     <p className="font-semibold text-primary mb-1">Choose a file or drag & drop it here</p>
-                    <p className="text-xs text-text-subtle mb-4">PDF files, up to 20MB</p>
+                    <p className="text-xs text-text-subtle mb-4">PDF or Image files, up to 20MB</p>
                     <Button type="button" variant="white" size="md" onClick={() => fileInputRef.current?.click()}>
                       Browse Files
                     </Button>
@@ -259,19 +265,17 @@ export default function CreateTestPage() {
                 )}
               </div>
               <p className="text-xs text-text-subtle text-center mt-3 mb-6">
-                Upload images of your preferred document/ image
+                Upload a PDF document or a clear image of textbook pages/notes
               </p>
 
               <label className="block text-sm font-bold text-primary mb-2">Due Date</label>
               <div className="relative mb-6">
                 <input
-                  type="text"
+                  type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  placeholder="DD-MM-YYYY"
-                  className="w-full bg-surface-muted border border-border rounded-xl py-3 px-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  className="w-full bg-surface-muted border border-border rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer text-text-muted"
                 />
-                <Calendar size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               </div>
 
               <p className="text-sm font-bold text-primary mb-3">Question Type</p>
@@ -334,7 +338,15 @@ export default function CreateTestPage() {
                 </div>
                 <div className="flex justify-between border-b border-border pb-3">
                   <dt className="text-text-muted">Due Date</dt>
-                  <dd className="font-semibold text-primary">{dueDate || '—'}</dd>
+                  <dd className="font-semibold text-primary">
+                    {dueDate ? (() => {
+                      if (dueDate.includes('-') && dueDate.split('-')[0].length === 4) {
+                        const [y, m, d] = dueDate.split('-');
+                        return `${d}-${m}-${y}`;
+                      }
+                      return dueDate;
+                    })() : '—'}
+                  </dd>
                 </div>
                 <div className="flex justify-between border-b border-border pb-3">
                   <dt className="text-text-muted">Difficulty</dt>

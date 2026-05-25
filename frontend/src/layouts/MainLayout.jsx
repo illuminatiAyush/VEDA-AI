@@ -292,7 +292,10 @@ function LayoutShell() {
         </main>
       </div>
 
-      <nav className="lg:hidden fixed bottom-3 inset-x-3 h-[68px] bg-primary rounded-[28px] px-2 flex items-center justify-around z-40 shadow-card safe-bottom">
+      <nav 
+        className="lg:hidden fixed inset-x-3 h-[68px] bg-primary rounded-[28px] px-2 flex items-center justify-around z-40 shadow-card"
+        style={{ bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+      >
         {mobileLinks.map((link) => {
           const Icon = link.icon;
           const active = isActive(link);
@@ -315,7 +318,8 @@ function LayoutShell() {
       {path === '/teacher/dashboard' && (
         <Link
           to="/teacher/create-test"
-          className="lg:hidden fixed bottom-[88px] right-5 w-14 h-14 bg-white rounded-full shadow-card flex items-center justify-center z-30"
+          className="lg:hidden fixed right-5 w-14 h-14 bg-white rounded-full shadow-card flex items-center justify-center z-30"
+          style={{ bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))' }}
           aria-label="Create Assignment"
         >
           <Plus size={28} className="text-brand" strokeWidth={2.5} />

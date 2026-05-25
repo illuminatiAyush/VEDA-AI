@@ -24,7 +24,7 @@ function QuestionPaperDocument({ test, questions }) {
     : 2;
 
   return (
-    <div id="veda-question-paper" className="bg-white rounded-veda-xl p-6 sm:p-10 shadow-soft text-primary text-sm leading-relaxed max-w-3xl mx-auto print:shadow-none">
+    <div id="veda-question-paper" className="bg-white rounded-veda-xl p-4 sm:p-10 shadow-soft text-primary text-sm leading-relaxed max-w-3xl mx-auto print:shadow-none">
       <div className="text-center mb-6">
         <h2 className="text-lg sm:text-xl font-bold">Delhi Public School, Sector-4, Bokaro</h2>
         <p className="mt-2 font-medium">Subject: {test.title?.split(' ')[0] || 'Science'}</p>
@@ -180,7 +180,7 @@ export default function TestViewerPage() {
   return (
     <div className="w-full max-w-5xl mx-auto pb-12">
       {/* Dark frame — Figma AI toolkit / paper view */}
-      <div className="bg-frame rounded-veda-xl p-6 sm:p-8 text-white print:bg-white print:text-primary">
+      <div className="bg-frame rounded-veda-xl p-3 sm:p-8 text-white print:bg-white print:text-primary">
         <p className="text-sm sm:text-base leading-relaxed mb-6 max-w-3xl print:hidden">
           {introText.split('Question Paper').map((part, i, arr) =>
             i < arr.length - 1 ? (

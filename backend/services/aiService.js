@@ -167,11 +167,22 @@ async function generateTestQuestions(documentText, difficulty, numQuestions, use
   let genRaw;
 
   if (documentText.startsWith('__SCANNED_PDF_FALLBACK_BASE64__:')) {
-    const base64Data = documentText.replace('__SCANNED_PDF_FALLBACK_BASE64__:', '');
-    logger.info('Invoking Multimodal OCR Engine via Gemini 2.0 Flash for scanned/image PDF...');
+    const contentPayload = documentText.replace('__SCANNED_PDF_FALLBACK_BASE64__:', '');
+    
+    let mimeType = 'application/pdf';
+    let base64Data = contentPayload;
+    
+    // Check if payload contains the mimeType (e.g. image/png:base64...)
+    const colonIndex = contentPayload.indexOf(':');
+    if (colonIndex > -1 && colonIndex < 30) { // Safety constraint on mime length
+      mimeType = contentPayload.substring(0, colonIndex);
+      base64Data = contentPayload.substring(colonIndex + 1);
+    }
+
+    logger.info({ mimeType }, 'Invoking Multimodal OCR Engine via Gemini 2.0 Flash for scanned/image input...');
     
     if (!GEMINI_API_KEY) {
-      throw new Error('Gemini API key is required to process scanned/image PDFs (OCR).');
+      throw new Error('Gemini API key is required to process scanned/image files (OCR).');
     }
 
     try {
@@ -183,7 +194,7 @@ async function generateTestQuestions(documentText, difficulty, numQuestions, use
           contents: [{
             parts: [
               {
-                text: `You are an expert AI assessment engine. Read this scanned PDF document, perform visual OCR, extract the text and diagrams, and generate an assessment with EXACTLY ${numQuestions} questions.
+                text: `You are an expert AI assessment engine. Read this scanned document, perform visual OCR, extract the text and diagrams, and generate an assessment with EXACTLY ${numQuestions} questions.
                        Difficulty level: ${difficulty.toUpperCase()}.
                        
                        OUTPUT FORMAT:
@@ -198,7 +209,7 @@ async function generateTestQuestions(documentText, difficulty, numQuestions, use
               },
               {
                 inlineData: {
-                  mimeType: 'application/pdf',
+                  mimeType: mimeType,
                   data: base64Data
                 }
               }
