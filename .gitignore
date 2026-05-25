@@ -82,6 +82,9 @@ frontend/src/assets/temp/*
 
 # ── 10. AGENT / MODEL SYSTEM LOGS ──
 .gemini/
+.agents/
+.augment/
+skills-lock.json
 **/logs/overview.txt
 **/logs/
 **/scratch/
